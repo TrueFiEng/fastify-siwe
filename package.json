@@ -1,0 +1,38 @@
+{
+  "name": "fastify-siwe",
+  "version": "0.1.0",
+  "description": "",
+  "main": "index.js",
+  "dependencies": {
+    "siwe": "^1.1.6"
+  },
+  "devDependencies": {
+    "@types/node": "^17.0.10",
+    "@types/react": "17.0.1",
+    "@typescript-eslint/eslint-plugin": "^4.10.0",
+    "@typescript-eslint/parser": "^4.10.0",
+    "eslint": "7.19.0",
+    "prettier": "^2.1.2",
+    "typescript": "^4.6.2"
+  },
+  "scripts": {
+    "build": "pnpm run build:esm && pnpm run build:cjs",
+    "build:esm": "tsc --module es2020 --target es2017 --outDir dist/esm",
+    "build:cjs": "tsc --outDir dist/cjs",
+    "test": "true",
+    "lint": "pnpm lint:prettier --check && pnpm lint:eslint",
+    "lint:fix": "pnpm lint:prettier --write && pnpm lint:eslint --fix",
+    "lint:eslint": "eslint './{src,test}/**/*.{ts,tsx}'",
+    "lint:prettier": "pnpm prettier './{src,test}/**/*.{ts,tsx}'"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TrueFiEng/fastify-siwe.git"
+  },
+  "author": "mj426382",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/TrueFiEng/fastify-siwe/issues"
+  },
+  "homepage": "https://github.com/TrueFiEng/fastify-siwe#readme"
+}
