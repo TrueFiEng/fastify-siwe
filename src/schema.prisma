@@ -1,0 +1,8 @@
+
+model Session {
+  id          String
+  // JSON-encoded session data
+  data        Json
+
+  @@id([id])
+}
