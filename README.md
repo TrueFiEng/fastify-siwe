@@ -42,7 +42,7 @@ app.register(fastifySiwe, {
 
 ## Contributing
 
-Contributions are always welcome, no matter how large or small. Before contributing, please read the [code of conduct](https://github.com/TrueFiEng/fastify-siwe/main/CODE_OF_CONDUCT.md) and [contribution policy](https://github.com/TrueFiEng/fastify-siwe/main/CONTRIBUTION.md).
+Contributions are always welcome, no matter how large or small. Before contributing, please read the [code of conduct](https://github.com/TrueFiEng/fastify-siwe/blob/main/CODE_OF_CONDUCT.md) and [contribution policy](https://github.com/TrueFiEng/fastify-siwe/blob/main/CONTRIBUTION.md).
 
 ### Before you issue pull request:
 
