@@ -25,6 +25,7 @@
     "siwe": "^1.1.6"
   },
   "devDependencies": {
+    "@changesets/cli": "^2.22.0",
     "@types/node": "^17.0.10",
     "@types/react": "17.0.1",
     "@typescript-eslint/eslint-plugin": "^4.10.0",
@@ -41,7 +42,9 @@
     "lint": "pnpm lint:prettier --check && pnpm lint:eslint",
     "lint:fix": "pnpm lint:prettier --write && pnpm lint:eslint --fix",
     "lint:eslint": "eslint './{src,test}/**/*.{ts,tsx}'",
-    "lint:prettier": "pnpm prettier './{src,test}/**/*.{ts,tsx}'"
+    "lint:prettier": "pnpm prettier './{src,test}/**/*.{ts,tsx}'",
+    "version": "pnpm changeset version && pnpm install",
+    "release": "pnpm build && pnpm changeset publish"
   },
   "repository": {
     "type": "git",
