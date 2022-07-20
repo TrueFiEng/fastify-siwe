@@ -6,7 +6,7 @@ import { mock } from './mockApi';
 
 describe('signInWithEthereum', () => {
     const app = mock()
-    const provider = new MockProvider({ ganacheOptions: { chain: { chainId: 42 } } as any })
+    const provider = new MockProvider({ ganacheOptions: { chain: { chainId: 1 } } as any })
     const signer = provider.getWallets()[0]
 
     it('returns correct nonce', async () => {
@@ -57,6 +57,7 @@ describe('signInWithEthereum', () => {
         const origin = 'https://example.com'
         const statement = 'Sign in with Ethereum to the app.';
 
+        const invalidNonce = '0'.repeat(17)
         const message = new SiweMessage({
             domain,
             address: await signer.getAddress(),
@@ -64,7 +65,7 @@ describe('signInWithEthereum', () => {
             uri: origin,
             version: '1',
             chainId: 1,
-            nonce: '0'.repeat(17),
+            nonce: invalidNonce,
         });
 
         const signature = await signer.signMessage(message.prepareMessage())
