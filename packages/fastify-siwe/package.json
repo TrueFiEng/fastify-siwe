@@ -19,7 +19,7 @@
     "auth"
   ],
   "scripts": {
-    "build": "tsc ./src/index.ts --outDir ./dist/src",
+    "build": "tsc -p tsconfig-build.json",
     "test": "mocha -r ts-node/register/transpile-only './src/**/*.test.ts' --timeout 60000"
   },
   "dependencies": {
