@@ -1,0 +1,14 @@
+{
+  "name": "fastify-siwe-monorepo",
+  "version": "0.0.1",
+  "scripts": {
+    "build": "pnpm run -r build"
+  },
+  "author": "truefieng",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {},
+  "engines": {
+    "node": "16.x"
+  }
+}

@@ -43,7 +43,7 @@ fastify.get(
 
 const start = async () => {
   try {
-    await fastify.listen(3001)
+    await fastify.listen(process.env.PORT ?? 3001)
   } catch (err) {
     fastify.log.error(err)
     process.exit(1)

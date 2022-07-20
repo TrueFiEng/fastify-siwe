@@ -11,12 +11,19 @@
     "type": "git",
     "url": "git@github.com:vanruch/fastify-siwe.git"
   },
-  "keywords": ["fastify", "Sign in with Ethereum", "siwe", "ethereum", "auth"],
+  "keywords": [
+    "fastify",
+    "Sign in with Ethereum",
+    "siwe",
+    "ethereum",
+    "auth"
+  ],
   "scripts": {
     "build": "tsc",
     "test": "mocha -r ts-node/register/transpile-only './src/**/*.test.ts' --timeout 60000"
   },
   "dependencies": {
+    "ethers": "5.5.1",
     "fastify-plugin": "^3.0.1",
     "siwe": "^2.0.5"
   },

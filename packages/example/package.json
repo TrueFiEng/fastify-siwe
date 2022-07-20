@@ -9,7 +9,7 @@
     "start:backend": "node -r @swc-node/register src/backend/main.ts"
   },
   "dependencies": {
-    "ethers": "^5.6.4",
+    "ethers": "5.5.1",
     "fastify": "^3.28.0",
     "fastify-cors": "^6.0.3",
     "fastify-siwe": "workspace:*",
