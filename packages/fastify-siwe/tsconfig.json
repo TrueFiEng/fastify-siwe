@@ -3,7 +3,7 @@
     "outDir": "dist",
     "strict": true,
     "module": "commonjs",
-    "target": "esnext",
+    "target": "ESNext",
     "composite": true,
     "declaration": true,
     "declarationMap": true,
@@ -11,5 +11,8 @@
   },
   "include": [
     "src"
+  ],
+  "exclude": [
+    "src/**/*.test.ts"
   ]
 }

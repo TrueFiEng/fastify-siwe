@@ -55,7 +55,7 @@ async function parseAndValidateToken(token: string): Promise<SiweMessage> {
 
   const siweMessage = new SiweMessage(message)
 
-  await siweMessage.validate(signature)
+  await siweMessage.verify({ signature })
 
   return message
 }
