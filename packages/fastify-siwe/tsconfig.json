@@ -3,7 +3,7 @@
     "outDir": "dist",
     "strict": true,
     "module": "commonjs",
-    "target": "ESNext",
+    "target": "esnext",
     "composite": true,
     "declaration": true,
     "declarationMap": true,
