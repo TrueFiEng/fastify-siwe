@@ -4,30 +4,30 @@
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
   "files": [
-      "dist",
-      "src"
+    "dist",
+    "src"
   ],
   "repository": {
-      "type": "git",
-      "url": "git@github.com:vanruch/fastify-siwe.git"
+    "type": "git",
+    "url": "git@github.com:vanruch/fastify-siwe.git"
   },
   "keywords": ["fastify", "Sign in with Ethereum", "siwe", "ethereum", "auth"],
   "scripts": {
-      "build": "tsc",
-      "test": "mocha -r ts-node/register/transpile-only './src/**/*.test.ts' --timeout 60000"
+    "build": "tsc",
+    "test": "mocha -r ts-node/register/transpile-only './src/**/*.test.ts' --timeout 60000"
   },
   "dependencies": {
-      "fastify-plugin": "^3.0.1",
-      "siwe": "^2.0.5"
+    "fastify-plugin": "^3.0.1",
+    "siwe": "^2.0.5"
   },
   "devDependencies": {
-      "@types/chai": "^4.3.1",
-      "@types/mocha": "^9.1.1",
-      "@types/node": "^17.0.25",
-      "chai": "^4.3.6",
-      "fastify": "^3.28.0",
-      "mocha": "^10.0.0",
-      "ts-node": "^10.9.1",
-      "typescript": "^4.6.3"
+    "@types/chai": "^4.3.1",
+    "@types/mocha": "^9.1.1",
+    "@types/node": "^17.0.25",
+    "chai": "^4.3.6",
+    "fastify": "^3.28.0",
+    "mocha": "^10.0.0",
+    "ts-node": "^10.9.1",
+    "typescript": "^4.6.3"
   }
 }
