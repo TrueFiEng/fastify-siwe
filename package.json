@@ -2,7 +2,6 @@
   "name": "fastify-siwe-monorepo",
   "version": "0.0.1",
   "scripts": {
-    "heroku-prebuild": "pnpm install --prod=false",
     "build": "pnpm run -r build"
   },
   "author": "truefieng",
