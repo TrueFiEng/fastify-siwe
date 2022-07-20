@@ -2,6 +2,7 @@
   "name": "fastify-siwe-monorepo",
   "version": "0.0.1",
   "scripts": {
+    "prebuild": "pnpm install --prod=false",
     "build": "pnpm run -r build"
   },
   "author": "truefieng",
