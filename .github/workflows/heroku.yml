@@ -15,3 +15,5 @@ jobs:
           heroku_api_key: ${{secrets.HEROKU_API_KEY}}
           heroku_app_name: "fastify-siwe-example-backend"
           heroku_email: "przemyslaw.rzad@trusttoken.com"
+        env:
+          PNPM_VERSION: 7.1.9
