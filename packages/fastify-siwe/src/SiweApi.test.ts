@@ -1,6 +1,7 @@
 import { InMemoryStore } from '.'
 import { SiweApi } from './SiweApi'
 import { expect } from 'chai'
+import { SiweMessage } from 'siwe'
 
 describe('SiweApi', () => {
     let store: InMemoryStore
@@ -20,14 +21,29 @@ describe('SiweApi', () => {
         expect(session?.nonce).to.equal(nonce)
     })
     
-    xit('destroysSession', async () => {
+    it('destroysSession', async () => {
         const nonce = await siweApi.generateNonce()
         const session = await store.get(nonce)
         expect(session).to.exist
         expect(session?.nonce).to.equal(nonce)
-        
-        console.log(store.sessions)
 
-        // await siweApi.destroySession()
+        const siweMessage = new SiweMessage({
+            domain: 'https://example.com',
+            address: '0x0000000000000000000000000000000000000000',
+            uri: 'https://example.com',
+            version: '1',
+            chainId: 1,
+            nonce,
+        })
+        if(session?.message) {
+            session.message = siweMessage
+        }
+        siweApi.session = siweMessage 
+            
+        await siweApi.destroySession()
+
+        const destroyedSession = await store.get(nonce)
+        expect(destroyedSession).to.be.undefined
+        expect(siweApi.session).to.be.undefined
     })
 })
