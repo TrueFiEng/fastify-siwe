@@ -1,1 +1,1 @@
-web: pnpm run build && cd packages/example && pnpm run start:backend
+web: cd packages/example && pnpm run start:backend
