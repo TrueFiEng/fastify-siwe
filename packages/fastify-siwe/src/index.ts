@@ -12,7 +12,6 @@ export interface FastifySiweOptions {
 
 export const signInWithEthereum = ({ store }: FastifySiweOptions) =>
   fp(async (fastify: FastifyInstance) => {
-    fastify.register(cookie)
     fastify.addHook('preHandler', async (request, reply) => {
       request.siwe = new SiweApi(store)
     })

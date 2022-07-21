@@ -11,6 +11,7 @@ fastify.register(cors, {
   origin: true,
   credentials: true,
 })
+fastify.register(cookie)
 fastify.register(signInWithEthereum({ store }))
 
 fastify.post(
@@ -56,7 +57,7 @@ fastify.post(
 
 fastify.get(
   '/siwe/me',
-  { preHandler: [siweMiddleware({ store })] },
+  { preHandler: siweMiddleware({ store }) },
   async function handler(
     this: FastifyInstance,
     req: FastifyRequest,

@@ -1,12 +1,14 @@
 import createFastify, { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { SiweMessage } from 'siwe'
 import { signInWithEthereum, InMemoryStore, siweMiddleware } from '.'
+import cookie from '@fastify/cookie'
 
 export const mock = (opts={}) => {
     const fastify = createFastify(opts)
 
     const store = new InMemoryStore()
 
+    fastify.register(cookie)
     fastify.register(signInWithEthereum({ store }))
 
     fastify.post(
@@ -51,7 +53,7 @@ export const mock = (opts={}) => {
 
     fastify.get(
         '/siwe/me',
-        { preHandler: [siweMiddleware({ store })] },
+        { preHandler: siweMiddleware({ store }) },
         async function handler(
             this: FastifyInstance,
             req: FastifyRequest,
