@@ -1,11 +1,9 @@
 import { expect } from 'chai';
 import createFastify, { FastifyInstance } from 'fastify';
 import { MockProvider } from 'ethereum-waffle';
-import 'jsdom-global/register';
 import { SiweMessage } from 'siwe';
 import { siwePlugin } from '.';
 import { InMemoryStore } from './InMemoryStore';
-import { mock } from './mockApi';
 import cookie from '@fastify/cookie'
 import { registerSiweRoutes } from './registerSiweRoutes';
 import { Wallet } from 'ethers';
