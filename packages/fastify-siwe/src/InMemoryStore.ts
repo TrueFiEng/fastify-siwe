@@ -1,4 +1,4 @@
-import { SessionStore, StoredSession } from "./types"
+import { SessionStore, StoredSession } from './types'
 
 export class InMemoryStore implements SessionStore {
   public sessions: Record<string, StoredSession>
@@ -7,7 +7,7 @@ export class InMemoryStore implements SessionStore {
     this.sessions = {}
   }
 
-  public async save(session: StoredSession){
+  public async save(session: StoredSession) {
     this.sessions[session.nonce] = session
   }
 
@@ -18,5 +18,4 @@ export class InMemoryStore implements SessionStore {
   async remove(nonce: string): Promise<void> {
     delete this.sessions[nonce]
   }
-
 }
