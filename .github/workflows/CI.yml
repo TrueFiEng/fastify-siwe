@@ -19,6 +19,6 @@ jobs:
           node-version: ${{ matrix.node }}
       - run: npm i -g pnpm@7.1.9
       - run: pnpm install --frozen-lockfile --strict-peer-dependencies
-      #- run: pnpm run -r lint
+      - run: pnpm run -r lint
       - run: pnpm run -r build
-      #- run: pnpm run -r test
+      - run: pnpm run -r test
