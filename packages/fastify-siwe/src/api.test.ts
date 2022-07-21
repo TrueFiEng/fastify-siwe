@@ -1,13 +1,32 @@
 import { expect } from 'chai';
+import createFastify, { FastifyInstance } from 'fastify';
 import { MockProvider } from 'ethereum-waffle';
 import 'jsdom-global/register';
 import { SiweMessage } from 'siwe';
+import { siwePlugin } from '.';
+import { InMemoryStore } from './InMemoryStore';
 import { mock } from './mockApi';
+import cookie from '@fastify/cookie'
+import { registerSiweRoutes } from './registerSiweRoutes';
+import { Wallet } from 'ethers';
 
-describe('signInWithEthereum', () => {
-    const app = mock()
-    const provider = new MockProvider({ ganacheOptions: { chain: { chainId: 1 } } as any })
-    const signer = provider.getWallets()[0]
+
+describe('Fastify with SIWE API', () => {
+    let app: FastifyInstance;
+    let signer: Wallet
+
+    before(async () => {
+        const provider = new MockProvider({ ganacheOptions: { chain: { chainId: 1 } } as any })
+        signer = provider.getWallets()[0]
+        app = createFastify()
+    
+        const store = new InMemoryStore()
+    
+        app.register(cookie)
+        app.register(siwePlugin({ store }))
+        registerSiweRoutes(app, {store})
+    })
+    
 
     it('returns correct nonce', async () => {
         const { nonce } = (await app.inject({
@@ -107,4 +126,18 @@ describe('signInWithEthereum', () => {
         expect(authResponse.statusCode).to.equal(403)
         expect(authResponse.payload).to.equal('Invalid nonce')
     })
+})
+
+describe('Fastify with incorrect configuration', () => {
+    // const app = mock()
+    // const provider = new MockProvider({ ganacheOptions: { chain: { chainId: 1 } } as any })
+    // const signer = provider.getWallets()[0]
+    // const fastify = createFastify(opts)
+
+    // const store = new InMemoryStore()
+
+    /**
+     * Oops, the user forgot to register the cookie plugin.
+     */
+    // fastify.register(cookie)
 })

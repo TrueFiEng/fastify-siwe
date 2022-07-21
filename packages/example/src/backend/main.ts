@@ -1,5 +1,5 @@
 import createFastify, { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
-import { signInWithEthereum, InMemoryStore, siweMiddleware } from 'fastify-siwe'
+import { siwePlugin, InMemoryStore, siweMiddleware } from 'fastify-siwe'
 import cors from '@fastify/cors'
 import { SiweMessage } from 'siwe'
 import cookie from '@fastify/cookie'
@@ -11,8 +11,13 @@ fastify.register(cors, {
   origin: true,
   credentials: true,
 })
-fastify.register(cookie)
-fastify.register(signInWithEthereum({ store }))
+fastify.register(cookie) // TODO: Comment out, make sure there is understable error message for the user
+
+// register siwe
+// add routes
+// TODO: Forget one, see what happens. Forget the other, see what happens.
+
+fastify.register(siwePlugin({ store }))
 
 fastify.post(
   '/siwe/init',

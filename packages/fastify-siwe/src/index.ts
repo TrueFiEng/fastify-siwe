@@ -10,14 +10,14 @@ export interface FastifySiweOptions {
   store: SessionStore
 }
 
-export const signInWithEthereum = ({ store }: FastifySiweOptions) =>
+export const siwePlugin = ({ store }: FastifySiweOptions) =>
   fp(async (fastify: FastifyInstance) => {
     fastify.addHook('preHandler', async (request, reply) => {
       request.siwe = new SiweApi(store)
     })
   }, { name: 'SIWE' })
 
-export const siweMiddleware = ({ store }: FastifySiweOptions) => 
+export const siweAuthenticated = ({ store }: FastifySiweOptions) => 
   async (request: FastifyRequest, reply: FastifyReply, done: (err?: FastifyError) => void) => {
     const token = extractAuthToken(request)
     if (!token) {
