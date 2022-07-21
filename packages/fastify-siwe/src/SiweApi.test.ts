@@ -1,4 +1,4 @@
-import { InMemoryStore } from '.'
+import { InMemoryStore } from './InMemoryStore'
 import { SiweApi } from './SiweApi'
 import { expect } from 'chai'
 import { SiweMessage } from 'siwe'

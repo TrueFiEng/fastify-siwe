@@ -1,8 +1,8 @@
 import { expect } from 'chai';
-import createFastify, { FastifyInstance } from 'fastify';
+import createFastify from 'fastify';
 import { MockProvider } from 'ethereum-waffle';
 import { SiweMessage } from 'siwe';
-import { siwePlugin } from '.';
+import { siwePlugin } from './plugin';
 import { InMemoryStore } from './InMemoryStore';
 import cookie from '@fastify/cookie'
 import { registerSiweRoutes } from './registerSiweRoutes';
