@@ -9,9 +9,10 @@
     "start:backend": "node -r @swc-node/register src/backend/main.ts"
   },
   "dependencies": {
+    "@fastify/cookie": "^7.2.0",
+    "@fastify/cors": "8.0.0",
     "ethers": "5.5.1",
-    "fastify": "^3.28.0",
-    "fastify-cors": "^6.0.3",
+    "fastify": "4.2.1",
     "fastify-siwe": "workspace:*",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",

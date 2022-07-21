@@ -43,13 +43,38 @@ describe('signInWithEthereum', () => {
         const authResponse = (await app.inject({
             method: 'GET',
             url: '/siwe/me',
-            headers: {
-                Authorization: `Bearer ${authToken}`,
+            cookies: {
+                authToken,
             },
         })).json()
 
         expect(authResponse.loggedIn).to.equal(true)
         expect(authResponse.message).to.deep.equal(message)
+    })
+
+    it('returns 401 because of missing token', async () => {
+        const authResponse = await app.inject({
+            method: 'GET',
+            url: '/siwe/me',
+        })
+
+        expect(authResponse.statusCode).to.equal(401)
+        expect(authResponse.body).to.equal('Unauthorized')
+    })
+
+    it('returns 401 because of invalid token', async () => {
+        const authToken = 'invalid'
+
+        const authResponse = await app.inject({
+            method: 'GET',
+            url: '/siwe/me',
+            cookies: {
+                authToken,
+            },
+        })
+
+        expect(authResponse.statusCode).to.equal(401)
+        expect(authResponse.body).to.equal('Invalid token')
     })
 
     it('returns 403 because of invalid nonce', async () => {
@@ -74,8 +99,8 @@ describe('signInWithEthereum', () => {
         const authResponse = await app.inject({
             method: 'GET',
             url: '/siwe/me',
-            headers: {
-                Authorization: `Bearer ${authToken}`,
+            cookies: {
+                authToken,
             },
         })
 

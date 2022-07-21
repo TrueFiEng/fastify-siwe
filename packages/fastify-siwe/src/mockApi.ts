@@ -1,10 +1,13 @@
-import createFastify, { FastifyInstance, FastifyRequest } from 'fastify'
-import { signInWithEthereum } from '.'
+import createFastify, { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
+import { SiweMessage } from 'siwe'
+import { signInWithEthereum, InMemoryStore, siweMiddleware } from '.'
 
 export const mock = (opts={}) => {
     const fastify = createFastify(opts)
 
-    fastify.register(signInWithEthereum())
+    const store = new InMemoryStore()
+
+    fastify.register(signInWithEthereum({ store }))
 
     fastify.post(
         '/siwe/init',
@@ -12,7 +15,7 @@ export const mock = (opts={}) => {
         async function handler(
             this: FastifyInstance,
             req: FastifyRequest,
-            reply,
+            reply: FastifyReply,
         ) {
             reply.send({
                 nonce: await req.siwe.generateNonce(),
@@ -20,13 +23,39 @@ export const mock = (opts={}) => {
         },
     )
 
+    fastify.post(
+        '/siwe/cookie',
+        {},
+        async function handler(
+          this: FastifyInstance,
+          req: FastifyRequest<{Body: {
+            signature: string,
+            message: SiweMessage,
+          }}>,
+          reply: FastifyReply,
+        ) {
+          const authToken = JSON.stringify({
+            message: req.body.message,
+            signature: req.body.signature,
+          })
+      
+          reply.setCookie('authToken', authToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 1000 * 60 * 60 * 24,
+            path: '/',
+          }).send()
+        },
+      )
+
     fastify.get(
         '/siwe/me',
-        {},
+        { preHandler: [siweMiddleware({ store })] },
         async function handler(
             this: FastifyInstance,
             req: FastifyRequest,
-            reply,
+            reply: FastifyReply,
         ) {
             if (!req.siwe.session) {
                 reply.status(401).send()
@@ -39,6 +68,20 @@ export const mock = (opts={}) => {
             })
         },
     )
+
+    fastify.get(
+        '/siwe/signout',
+        {},
+        async function handler(
+          this: FastifyInstance,
+          req: FastifyRequest,
+          reply: FastifyReply,
+        ) {
+          reply.clearCookie('authToken').send({
+            loggedIn: false,
+          })
+        },
+      )
 
     return fastify
 }
