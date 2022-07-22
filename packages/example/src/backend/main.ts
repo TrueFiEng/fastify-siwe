@@ -7,14 +7,17 @@ const fastify = createFastify({ logger: true })
 const store = new InMemoryStore()
 
 fastify.register(cors, {
-  origin: true,
   credentials: true,
+  origin: (origin, cb) => {
+    const hostname = new URL(origin).hostname
+    if (hostname === 'localhost') {
+      cb(null, true)
+      return
+    }
+    cb(new Error('Not allowed'), false)
+  },
 })
-fastify.register(cookie) // TODO: Comment out, make sure there is understable error message for the user
-
-// register siwe
-// add routes
-// TODO: Forget one, see what happens. Forget the other, see what happens.
+fastify.register(cookie)
 
 fastify.register(siwePlugin({ store }))
 registerSiweRoutes(fastify, { store })
