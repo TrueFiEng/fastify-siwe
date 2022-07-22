@@ -46,6 +46,8 @@ export const registerSiweRoutes = (
       }>,
       reply: FastifyReply
     ) {
+      req.siwe.setSession(req.body.message)
+
       const authToken = JSON.stringify({
         message: req.body.message,
         signature: req.body.signature,

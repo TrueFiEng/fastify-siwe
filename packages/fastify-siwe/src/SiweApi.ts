@@ -8,14 +8,16 @@ export class SiweApi {
 
   async generateNonce(): Promise<string> {
     const nonce = generateNonce()
-    await this._store.save({
-      nonce,
-    })
     return nonce
   }
 
+  async setSession(session: SiweMessage) {
+    await this._store.save(session)
+    this.session = session
+  }
+
   async destroySession(): Promise<void> {
-    if (!this.session?.nonce) {
+    if (!this.session) {
       throw new Error('No session to destroy')
     }
 

@@ -49,11 +49,13 @@ importers:
     specifiers:
       '@fastify/cookie': ^7.2.0
       '@types/chai': ^4.3.1
+      '@types/chai-as-promised': ^7.1.5
       '@types/mocha': ^9.1.1
       '@types/node': ^17.0.25
       '@typescript-eslint/eslint-plugin': ^5.30.7
       '@typescript-eslint/parser': ^5.30.7
       chai: ^4.3.6
+      chai-as-promised: ^7.1.1
       eslint: ^8.20.0
       ethereum-waffle: 4.0.0-alpha.27
       ethers: 5.5.1
@@ -71,11 +73,13 @@ importers:
     devDependencies:
       '@fastify/cookie': 7.2.0
       '@types/chai': 4.3.1
+      '@types/chai-as-promised': 7.1.5
       '@types/mocha': 9.1.1
       '@types/node': 17.0.25
       '@typescript-eslint/eslint-plugin': 5.30.7_yizihyf7l3dacgtfe3u7resf6e
       '@typescript-eslint/parser': 5.30.7_ed5gxwv6gpi5htrorjmkxfvwzu
       chai: 4.3.6
+      chai-as-promised: 7.1.1_chai@4.3.6
       eslint: 8.20.0
       ethereum-waffle: 4.0.0-alpha.27_typescript@4.6.3
       fastify: 4.2.1
@@ -1852,6 +1856,12 @@ packages:
       '@types/node': 17.0.25
     dev: true
 
+  /@types/chai-as-promised/7.1.5:
+    resolution: {integrity: sha512-jStwss93SITGBwt/niYrkf2C+/1KTeZCZl1LaeezTlqppAKeoQC7jxyqYuP72sxBGKCIbw7oHgbYssIRzT5FCQ==}
+    dependencies:
+      '@types/chai': 4.3.1
+    dev: true
+
   /@types/chai/4.3.1:
     resolution: {integrity: sha512-/zPMqDkzSZ8t3VtxOa4KPq7uzzW978M9Tvh+j7GHKuo6k6GTLxPJ4J5gE5cjfJ26pnXst0N5Hax8Sr0T2Mi9zQ==}
     dev: true
@@ -2444,6 +2454,15 @@ packages:
   /catering/2.1.1:
     resolution: {integrity: sha512-K7Qy8O9p76sL3/3m7/zLKbRkyOlSZAgzEaLhyj2mXS8PsCud2Eo4hAb8aLtZqHh0QGqLcb9dlJSu6lHRVENm1w==}
     engines: {node: '>=6'}
+    dev: true
+
+  /chai-as-promised/7.1.1_chai@4.3.6:
+    resolution: {integrity: sha512-azL6xMoi+uxu6z4rhWQ1jbdUhOMhis2PvscD/xjLqNMkv3BPPp2JyyuTHOrf9BOosGpNQ11v6BKv/g57RXbiaA==}
+    peerDependencies:
+      chai: '>= 2.1.2 < 5'
+    dependencies:
+      chai: 4.3.6
+      check-error: 1.0.2
     dev: true
 
   /chai/4.3.6:
