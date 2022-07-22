@@ -9,7 +9,7 @@ async function getNonce(): Promise<string> {
   return nonce
 }
 
-async function setCookie({ signature, message }: { signature: string; message: SiweMessage }): Promise<void> {
+async function siweSignIn({ signature, message }: { signature: string; message: SiweMessage }): Promise<void> {
   await fetch('http://localhost:3001/siwe/cookie', {
     method: 'POST',
     credentials: 'include',
