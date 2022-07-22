@@ -39,7 +39,7 @@ export const registerSiweRoutes = (fastify: FastifyInstance, { store }: Register
       reply
         .setCookie('authToken', authToken, {
           httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
+          secure: process.env.NODE_ENV !== 'development',
           sameSite: 'strict',
           maxAge: 1000 * 60 * 60 * 24,
           path: '/',
