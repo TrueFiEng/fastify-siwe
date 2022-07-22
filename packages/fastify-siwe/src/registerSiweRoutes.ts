@@ -19,7 +19,7 @@ export const registerSiweRoutes = (fastify: FastifyInstance, { store }: Register
   )
 
   fastify.post(
-    '/siwe/cookie',
+    '/siwe/signin',
     {},
     async function handler(
       this: FastifyInstance,
