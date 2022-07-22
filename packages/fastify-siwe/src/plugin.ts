@@ -3,6 +3,7 @@ import { SiweMessage } from 'siwe'
 import { SiweApi } from './SiweApi'
 import { SessionStore } from './types'
 import fastifyPlugin from 'fastify-plugin'
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import type { fastifyCookie } from '@fastify/cookie' // Has to be there in order to override the Fastify types with cookies.
 
 export interface FastifySiweOptions {
@@ -12,7 +13,8 @@ export interface FastifySiweOptions {
 export const siwePlugin = ({ store }: FastifySiweOptions) =>
   fastifyPlugin(
     async (fastify: FastifyInstance) => {
-      fastify.addHook('preHandler', async (request, reply) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      fastify.addHook('preHandler', async (request: FastifyRequest, reply: FastifyReply) => {
         request.siwe = new SiweApi(store)
       })
     },
