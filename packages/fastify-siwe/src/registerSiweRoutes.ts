@@ -11,7 +11,7 @@ export interface RegisterSiweRoutesOpts {
 }
 
 const DEFAULT_COOKIE_SAME_SITE = 'strict'
-const DEFAULT_COOKIE_MAX_AGE = 1000 * 60 * 60 * 24 // 1 day
+const DEFAULT_COOKIE_MAX_AGE = 60 * 60 * 24 // 1 day
 const DEFAULT_COOKIE_PATH = '/'
 
 export const registerSiweRoutes = (
@@ -54,7 +54,7 @@ export const registerSiweRoutes = (
       })
 
       reply
-        .setCookie('authToken', authToken, {
+        .setCookie('__Host_auth_token', authToken, {
           httpOnly: true,
           secure: process.env.NODE_ENV !== 'development',
           sameSite: cookieSameSite,
@@ -85,7 +85,7 @@ export const registerSiweRoutes = (
     { preHandler: siweAuthenticated({ store }) },
     async function handler(this: FastifyInstance, req: FastifyRequest, reply: FastifyReply) {
       await req.siwe.destroySession()
-      reply.clearCookie('authToken').send({
+      reply.clearCookie('__Host_auth_token').send({
         loggedIn: false,
       })
     }

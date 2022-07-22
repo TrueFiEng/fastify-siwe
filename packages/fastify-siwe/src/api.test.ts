@@ -26,7 +26,7 @@ describe('Fastify with SIWE API', () => {
 
     app.register(cookie)
     app.register(siwePlugin({ store }))
-    registerSiweRoutes(app, { store, cookieMaxAge: 1000 * 3 })
+    registerSiweRoutes(app, { store })
   })
 
   it('returns correct nonce', async () => {
@@ -74,7 +74,7 @@ describe('Fastify with SIWE API', () => {
         method: 'GET',
         url: '/siwe/me',
         cookies: {
-          authToken,
+          __Host_auth_token: authToken,
         },
       })
     ).json()
@@ -121,7 +121,7 @@ describe('Fastify with SIWE API', () => {
         method: 'GET',
         url: '/siwe/me',
         cookies: {
-          authToken,
+          __Host_auth_token: authToken,
         },
       })
     ).json()
@@ -148,7 +148,7 @@ describe('Fastify with SIWE API', () => {
       method: 'GET',
       url: '/siwe/me',
       cookies: {
-        authToken: secondAuthToken,
+        __Host_auth_token: secondAuthToken,
       },
     })
 
@@ -173,7 +173,7 @@ describe('Fastify with SIWE API', () => {
       method: 'GET',
       url: '/siwe/me',
       cookies: {
-        authToken,
+        __Host_auth_token: authToken,
       },
     })
 
@@ -200,7 +200,7 @@ describe('Fastify with SIWE API', () => {
       method: 'GET',
       url: '/siwe/me',
       cookies: {
-        authToken,
+        __Host_auth_token: authToken,
       },
     })
 
@@ -215,7 +215,7 @@ describe('Fastify with SIWE API', () => {
 
     secondApp.register(cookie)
     secondApp.register(siwePlugin({ store }))
-    registerSiweRoutes(secondApp, { store, cookieMaxAge: 1000 * 3 })
+    registerSiweRoutes(secondApp, { store })
 
     const firstPromise = app.inject({
       method: 'POST',
@@ -240,7 +240,7 @@ describe('Fastify with incorrect configuration', () => {
     const app = createFastify()
     const store = new InMemoryStore()
     app.register(siwePlugin({ store }))
-    registerSiweRoutes(app, { store, cookieMaxAge: 1000 * 3 })
+    registerSiweRoutes(app, { store })
 
     expect(app.listen({ port: 8080 })).to.be.rejectedWith(
       '@fastify/cookie is not registered. Please register it before using fastify-siwe'

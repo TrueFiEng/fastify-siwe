@@ -21,7 +21,7 @@ export const siwePlugin = ({ store }: FastifySiweOptions) =>
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       fastify.addHook('preHandler', async (request: FastifyRequest, reply: FastifyReply) => {
         request.siwe = new SiweApi(store)
-        const token = request.cookies['authToken']
+        const token = request.cookies['__Host_auth_token']
         if (token) {
           try {
             const { message } = JSON.parse(token)
@@ -38,7 +38,7 @@ export const siwePlugin = ({ store }: FastifySiweOptions) =>
 export const siweAuthenticated =
   ({ store }: FastifySiweOptions) =>
   async (request: FastifyRequest, reply: FastifyReply, done: (err?: FastifyError) => void) => {
-    const token = request.cookies['authToken']
+    const token = request.cookies['__Host_auth_token']
     if (!token) {
       return reply.code(401).send('Unauthorized')
     }
