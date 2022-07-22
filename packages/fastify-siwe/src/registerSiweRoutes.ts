@@ -5,9 +5,24 @@ import { siweAuthenticated } from './index'
 
 export interface RegisterSiweRoutesOpts {
   store: SessionStore
+  cookieSameSite?: boolean | 'strict' | 'lax' | 'none'
+  cookieMaxAge?: number
+  cookiePath?: string
 }
 
-export const registerSiweRoutes = (fastify: FastifyInstance, { store }: RegisterSiweRoutesOpts) => {
+const DEFAULT_COOKIE_SAME_SITE = 'strict'
+const DEFAULT_COOKIE_MAX_AGE = 1000 * 60 * 60 * 24 // 1 day
+const DEFAULT_COOKIE_PATH = '/'
+
+export const registerSiweRoutes = (
+  fastify: FastifyInstance,
+  {
+    store,
+    cookieSameSite = DEFAULT_COOKIE_SAME_SITE,
+    cookieMaxAge = DEFAULT_COOKIE_MAX_AGE,
+    cookiePath = DEFAULT_COOKIE_PATH,
+  }: RegisterSiweRoutesOpts
+) => {
   fastify.post(
     '/siwe/init',
     {},
@@ -40,9 +55,9 @@ export const registerSiweRoutes = (fastify: FastifyInstance, { store }: Register
         .setCookie('authToken', authToken, {
           httpOnly: true,
           secure: process.env.NODE_ENV !== 'development',
-          sameSite: 'strict',
-          maxAge: 1000 * 60 * 60 * 24,
-          path: '/',
+          sameSite: cookieSameSite,
+          maxAge: cookieMaxAge,
+          path: cookiePath,
         })
         .send()
     }
@@ -53,8 +68,7 @@ export const registerSiweRoutes = (fastify: FastifyInstance, { store }: Register
     { preHandler: siweAuthenticated({ store }) },
     async function handler(this: FastifyInstance, req: FastifyRequest, reply: FastifyReply) {
       if (!req.siwe.session) {
-        reply.status(401).send()
-        return
+        return reply.status(401).send()
       }
 
       reply.code(200).send({
@@ -66,8 +80,9 @@ export const registerSiweRoutes = (fastify: FastifyInstance, { store }: Register
 
   fastify.get(
     '/siwe/signout',
-    {},
+    { preHandler: siweAuthenticated({ store }) },
     async function handler(this: FastifyInstance, req: FastifyRequest, reply: FastifyReply) {
+      await req.siwe.destroySession()
       reply.clearCookie('authToken').send({
         loggedIn: false,
       })

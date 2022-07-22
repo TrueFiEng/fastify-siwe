@@ -10,7 +10,7 @@ async function getNonce(): Promise<string> {
 }
 
 async function siweSignIn({ signature, message }: { signature: string; message: SiweMessage }): Promise<void> {
-  await fetch('http://localhost:3001/siwe/cookie', {
+  await fetch('http://localhost:3001/siwe/signin', {
     method: 'POST',
     credentials: 'include',
     headers: {
