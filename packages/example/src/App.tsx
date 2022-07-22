@@ -59,7 +59,7 @@ function App() {
 
     await siweSignIn({ signature, message })
 
-    checkAuthStatus().then((res) => setMessage(res?.message))
+    void checkAuthStatus().then((res) => setMessage(res?.message))
   }
 
   async function signOut() {
@@ -70,7 +70,7 @@ function App() {
   }
 
   useEffect(() => {
-    checkAuthStatus().then((res) => setMessage(res?.message))
+    void checkAuthStatus().then((res) => setMessage(res?.message))
   }, [])
 
   return (

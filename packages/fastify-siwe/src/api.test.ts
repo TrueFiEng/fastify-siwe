@@ -24,8 +24,8 @@ describe('Fastify with SIWE API', () => {
 
     const store = new InMemoryStore()
 
-    app.register(cookie)
-    app.register(siwePlugin({ store }))
+    void app.register(cookie)
+    void app.register(siwePlugin({ store }))
     registerSiweRoutes(app, { store })
   })
 
@@ -213,8 +213,8 @@ describe('Fastify with SIWE API', () => {
 
     const store = new InMemoryStore()
 
-    secondApp.register(cookie)
-    secondApp.register(siwePlugin({ store }))
+    void secondApp.register(cookie)
+    void secondApp.register(siwePlugin({ store }))
     registerSiweRoutes(secondApp, { store })
 
     const firstPromise = app.inject({
@@ -239,10 +239,10 @@ describe('Fastify with incorrect configuration', () => {
   it('throws an error if @fastify/cookie is not registered', async () => {
     const app = createFastify()
     const store = new InMemoryStore()
-    app.register(siwePlugin({ store }))
+    void app.register(siwePlugin({ store }))
     registerSiweRoutes(app, { store })
 
-    expect(app.listen({ port: 8080 })).to.be.rejectedWith(
+    void expect(app.listen({ port: 8080 })).to.be.rejectedWith(
       '@fastify/cookie is not registered. Please register it before using fastify-siwe'
     )
   })

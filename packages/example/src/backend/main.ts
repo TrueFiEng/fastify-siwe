@@ -6,7 +6,7 @@ import cookie from '@fastify/cookie'
 const fastify = createFastify({ logger: true })
 const store = new InMemoryStore()
 
-fastify.register(cors, {
+void fastify.register(cors, {
   credentials: true,
   origin: (origin, cb) => {
     const hostname = new URL(origin).hostname
@@ -17,9 +17,8 @@ fastify.register(cors, {
     cb(new Error('Not allowed'), false)
   },
 })
-fastify.register(cookie)
-
-fastify.register(siwePlugin({ store }))
+void fastify.register(cookie)
+void fastify.register(siwePlugin({ store }))
 registerSiweRoutes(fastify, { store })
 
 const start = async () => {
@@ -30,4 +29,4 @@ const start = async () => {
     process.exit(1)
   }
 }
-start()
+void start()

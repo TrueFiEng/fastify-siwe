@@ -27,7 +27,7 @@ export const registerSiweRoutes = (
     '/siwe/init',
     {},
     async function handler(this: FastifyInstance, req: FastifyRequest, reply: FastifyReply) {
-      reply.send({
+      void reply.send({
         nonce: await req.siwe.generateNonce(),
       })
     }
@@ -46,14 +46,14 @@ export const registerSiweRoutes = (
       }>,
       reply: FastifyReply
     ) {
-      req.siwe.setSession(req.body.message)
+      void req.siwe.setSession(req.body.message)
 
       const authToken = JSON.stringify({
         message: req.body.message,
         signature: req.body.signature,
       })
 
-      reply
+      void reply
         .setCookie('__Host_auth_token', authToken, {
           httpOnly: true,
           secure: process.env.NODE_ENV !== 'development',
@@ -73,7 +73,7 @@ export const registerSiweRoutes = (
         return reply.status(401).send()
       }
 
-      reply.code(200).send({
+      void reply.code(200).send({
         loggedIn: true,
         message: req.siwe.session,
       })
@@ -85,7 +85,7 @@ export const registerSiweRoutes = (
     { preHandler: siweAuthenticated({ store }) },
     async function handler(this: FastifyInstance, req: FastifyRequest, reply: FastifyReply) {
       await req.siwe.destroySession()
-      reply.clearCookie('__Host_auth_token').send({
+      void reply.clearCookie('__Host_auth_token').send({
         loggedIn: false,
       })
     }

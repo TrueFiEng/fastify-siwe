@@ -55,7 +55,7 @@ export const siweAuthenticated =
       }
       done()
     } catch (err) {
-      reply.status(401).send('Invalid token')
+      void reply.status(401).send('Invalid token')
     }
   }
 
