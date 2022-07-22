@@ -57,7 +57,7 @@ function App() {
 
     const signature = await signer.signMessage(message.prepareMessage())
 
-    await setCookie({ signature, message })
+    await siweSignIn({ signature, message })
 
     checkAuthStatus().then((res) => setMessage(res?.message))
   }
