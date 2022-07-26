@@ -84,7 +84,7 @@ describe('Fastify with SIWE API', () => {
     expect(authResponse.message.address).to.equal(await signer.getAddress())
   })
 
-  it('re-uses the same nonce', async () => {
+  it('fails on re-use the same nonce', async () => {
     const secondSigner = provider.getWallets()[1]
 
     const { nonce } = (

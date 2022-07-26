@@ -9,8 +9,9 @@ const store = new InMemoryStore()
 void fastify.register(cors, {
   credentials: true,
   origin: (origin, cb) => {
-    const hostname = new URL(origin).hostname
-    if (hostname === 'localhost') {
+    const originHostName = new URL(origin).hostname
+    const allowedHostName = new URL(process.env.CORS_ORIGIN ?? 'http://localhost:3000').hostname
+    if (originHostName === allowedHostName) {
       cb(null, true)
       return
     }
@@ -23,7 +24,8 @@ registerSiweRoutes(fastify, { store })
 
 const start = async () => {
   try {
-    await fastify.listen({ port: 3001, host: '0.0.0.0' })
+    const port = parseInt(process.env.PORT ?? '3001', 10)
+    await fastify.listen({ port, host: '0.0.0.0' })
   } catch (err) {
     fastify.log.error(err)
     process.exit(1)
