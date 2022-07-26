@@ -5,11 +5,13 @@ import { siweAuthenticated } from './index'
 
 export interface RegisterSiweRoutesOpts {
   store: SessionStore
+  cookieSecure?: boolean
   cookieSameSite?: boolean | 'strict' | 'lax' | 'none'
   cookieMaxAge?: number
   cookiePath?: string
 }
 
+const DEFAULT_COOKIE_SECURE = process.env.NODE_ENV !== 'development'
 const DEFAULT_COOKIE_SAME_SITE = 'strict'
 const DEFAULT_COOKIE_MAX_AGE = 60 * 60 * 24 // 1 day
 const DEFAULT_COOKIE_PATH = '/'
@@ -18,6 +20,7 @@ export const registerSiweRoutes = (
   fastify: FastifyInstance,
   {
     store,
+    cookieSecure = DEFAULT_COOKIE_SECURE,
     cookieSameSite = DEFAULT_COOKIE_SAME_SITE,
     cookieMaxAge = DEFAULT_COOKIE_MAX_AGE,
     cookiePath = DEFAULT_COOKIE_PATH,
@@ -58,7 +61,7 @@ export const registerSiweRoutes = (
       void reply
         .setCookie('__Host_auth_token', authToken, {
           httpOnly: true,
-          secure: process.env.NODE_ENV !== 'development',
+          secure: cookieSecure,
           sameSite: cookieSameSite,
           maxAge: cookieMaxAge,
           path: cookiePath,

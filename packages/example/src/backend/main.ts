@@ -20,7 +20,7 @@ void fastify.register(cors, {
 })
 void fastify.register(cookie)
 void fastify.register(siwePlugin({ store }))
-registerSiweRoutes(fastify, { store, cookieSameSite: 'none' })
+registerSiweRoutes(fastify, { store, cookieSecure: false, cookieSameSite: 'none' })
 
 const start = async () => {
   try {
