@@ -25,7 +25,7 @@ registerSiweRoutes(fastify, { store, cookieSameSite: 'none' })
 const start = async () => {
   try {
     const port = parseInt(process.env.PORT ?? '3001', 10)
-    await fastify.listen({ port, host: '0.0.0.0' })
+    await fastify.listen({ port })
   } catch (err) {
     fastify.log.error(err)
     process.exit(1)
