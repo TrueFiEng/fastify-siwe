@@ -9,15 +9,25 @@ async function getNonce(): Promise<string> {
   return nonce
 }
 
+async function siweSignIn({ signature, message }: { signature: string; message: SiweMessage }): Promise<void> {
+  await fetch('http://localhost:3001/siwe/signin', {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      signature,
+      message,
+    }),
+  })
+}
+
 async function checkAuthStatus(): Promise<{
   message?: SiweMessage
 }> {
-  const token = localStorage.getItem('authToken')
-
   const req = await fetch('http://localhost:3001/siwe/me', {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    credentials: 'include',
   })
   return await req.json()
 }
@@ -47,18 +57,20 @@ function App() {
 
     const signature = await signer.signMessage(message.prepareMessage())
 
-    localStorage.setItem('authToken', JSON.stringify({ signature, message }))
+    await siweSignIn({ signature, message })
 
-    checkAuthStatus().then((res) => setMessage(res?.message))
+    void checkAuthStatus().then((res) => setMessage(res?.message))
   }
 
-  function signOut() {
-    localStorage.removeItem('authToken')
+  async function signOut() {
+    await fetch('http://localhost:3001/siwe/signout', {
+      credentials: 'include',
+    })
     setMessage(undefined)
   }
 
   useEffect(() => {
-    checkAuthStatus().then((res) => setMessage(res?.message))
+    void checkAuthStatus().then((res) => setMessage(res?.message))
   }, [])
 
   return (

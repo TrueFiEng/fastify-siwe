@@ -1,36 +1,34 @@
-import createFastify, { FastifyInstance, FastifyRequest } from 'fastify'
-import { signInWithEthereum } from 'fastify-siwe'
-import cors from 'fastify-cors'
+import createFastify from 'fastify'
+import { siwePlugin, InMemoryStore, registerSiweRoutes } from 'fastify-siwe'
+import cors from '@fastify/cors'
+import cookie from '@fastify/cookie'
 
 const fastify = createFastify({ logger: true })
+const store = new InMemoryStore()
 
-fastify.register(cors)
-fastify.register(signInWithEthereum())
-
-fastify.post('/siwe/init', {}, async function handler(this: FastifyInstance, req: FastifyRequest, reply) {
-  reply.send({
-    nonce: await req.siwe.generateNonce(),
-  })
+void fastify.register(cors, {
+  credentials: true,
+  origin: (origin, cb) => {
+    const originHostName = new URL(origin).hostname
+    const allowedHostName = new URL(process.env.CORS_ORIGIN ?? 'http://localhost:3000').hostname
+    if (originHostName === allowedHostName) {
+      cb(null, true)
+      return
+    }
+    cb(new Error('Not allowed'), false)
+  },
 })
-
-fastify.get('/siwe/me', {}, async function handler(this: FastifyInstance, req: FastifyRequest, reply) {
-  if (!req.siwe.session) {
-    reply.status(401).send()
-    return
-  }
-
-  reply.code(200).send({
-    loggedIn: true,
-    message: req.siwe.session,
-  })
-})
+void fastify.register(cookie)
+void fastify.register(siwePlugin({ store }))
+registerSiweRoutes(fastify, { store, cookieSameSite: 'none' })
 
 const start = async () => {
   try {
-    await fastify.listen(process.env.PORT ?? 3001)
+    const port = parseInt(process.env.PORT ?? '3001', 10)
+    await fastify.listen({ port })
   } catch (err) {
     fastify.log.error(err)
     process.exit(1)
   }
 }
-start()
+void start()

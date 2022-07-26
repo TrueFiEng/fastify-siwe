@@ -1,4 +1,4 @@
-import { InMemoryStore } from '.'
+import { InMemoryStore } from './InMemoryStore'
 import { expect } from 'chai'
 import { StoredSession } from './types'
 
