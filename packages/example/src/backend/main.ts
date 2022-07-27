@@ -8,19 +8,11 @@ const store = new InMemoryStore()
 
 void fastify.register(cors, {
   credentials: true,
-  origin: (origin, cb) => {
-    const originHostName = new URL(origin).hostname
-    const allowedHostName = new URL(process.env.CORS_ORIGIN ?? 'http://localhost:3000').hostname
-    if (originHostName === allowedHostName) {
-      cb(null, true)
-      return
-    }
-    cb(new Error('Not allowed'), false)
-  },
+  origin: true,
 })
 void fastify.register(cookie)
 void fastify.register(siwePlugin({ store }))
-registerSiweRoutes(fastify, { store, cookieSameSite: 'none' })
+registerSiweRoutes(fastify, { store, cookieSecure: true, cookieSameSite: 'none' })
 
 const start = async () => {
   try {
