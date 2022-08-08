@@ -13,7 +13,7 @@ export const siwePlugin = ({ store }: FastifySiweOptions) =>
   fastifyPlugin(
     async (fastify: FastifyInstance) => {
       fastify.addHook('onReady', async () => {
-        if (!fastify.signCookie) {
+        if (!fastify.parseCookie) {
           throw new Error('@fastify/cookie is not registered. Please register it before using fastify-siwe')
         }
       })
@@ -35,29 +35,31 @@ export const siwePlugin = ({ store }: FastifySiweOptions) =>
     { name: 'SIWE' }
   )
 
-export const siweAuthenticated =
-  ({ store }: FastifySiweOptions) =>
-  async (request: FastifyRequest, reply: FastifyReply, done: (err?: FastifyError) => void) => {
-    const token = request.cookies['__Host_auth_token']
-    if (!token) {
-      return reply.code(401).send('Unauthorized')
-    }
-
-    try {
-      const siweMessage = await parseAndValidateToken(token)
-
-      const currentSession = await store.get(siweMessage.nonce)
-      if (!currentSession || siweMessage.nonce !== currentSession.nonce) {
-        return reply.status(403).send('Invalid nonce')
-      }
-      if (siweMessage.address !== currentSession.address) {
-        return reply.status(403).send('Invalid address')
-      }
-      done()
-    } catch (err) {
-      void reply.status(401).send('Invalid token')
-    }
+export const siweAuthenticated = async (
+  request: FastifyRequest,
+  reply: FastifyReply,
+  done: (err?: FastifyError) => void
+) => {
+  const token = request.cookies['__Host_auth_token']
+  if (!token) {
+    return reply.code(401).send('Unauthorized')
   }
+
+  try {
+    const siweMessage = await parseAndValidateToken(token)
+
+    const currentSession = await request.siwe._store.get(siweMessage.nonce)
+    if (!currentSession || siweMessage.nonce !== currentSession.nonce) {
+      return reply.status(403).send('Invalid nonce')
+    }
+    if (siweMessage.address !== currentSession.message.address) {
+      return reply.status(403).send('Invalid address')
+    }
+    done()
+  } catch (err) {
+    void reply.status(401).send('Invalid token')
+  }
+}
 
 async function parseAndValidateToken(token: string): Promise<SiweMessage> {
   const { message, signature } = JSON.parse(token)

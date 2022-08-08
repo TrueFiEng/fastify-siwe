@@ -18,7 +18,7 @@ describe('SiweApi', () => {
   })
 
   it('sets session', async () => {
-    const session = new SiweMessage({
+    const message = new SiweMessage({
       domain: 'https://example.com',
       address: '0x0000000000000000000000000000000000000000',
       statement: 'Sign in with Ethereum to the app.',
@@ -28,17 +28,17 @@ describe('SiweApi', () => {
       nonce: await siweApi.generateNonce(),
     })
 
-    await siweApi.setSession(session)
+    await siweApi.setSession({ nonce: message.nonce, message })
 
-    const storedSession = await store.get(session.nonce)
+    const storedSession = await store.get(message.nonce)
 
     expect(storedSession).to.exist
-    expect(storedSession?.nonce).to.equal(session.nonce)
-    expect(storedSession?.address).to.equal(session.address)
+    expect(storedSession?.nonce).to.equal(message.nonce)
+    expect(storedSession?.message.address).to.equal(message.address)
   })
 
   it('destroys session', async () => {
-    const session = new SiweMessage({
+    const message = new SiweMessage({
       domain: 'https://example.com',
       address: '0x0000000000000000000000000000000000000000',
       statement: 'Sign in with Ethereum to the app.',
@@ -48,17 +48,17 @@ describe('SiweApi', () => {
       nonce: await siweApi.generateNonce(),
     })
 
-    await siweApi.setSession(session)
+    await siweApi.setSession({ nonce: message.nonce, message })
 
-    const storedSession = await store.get(session.nonce)
+    const storedSession = await store.get(message.nonce)
 
     expect(storedSession).to.exist
-    expect(storedSession?.nonce).to.equal(session.nonce)
-    expect(storedSession?.address).to.equal(session.address)
+    expect(storedSession?.nonce).to.equal(message.nonce)
+    expect(storedSession?.message.address).to.equal(message.address)
 
     await siweApi.destroySession()
 
-    const destroyedSession = await store.get(session.nonce)
+    const destroyedSession = await store.get(message.nonce)
     expect(destroyedSession).to.be.undefined
     expect(siweApi.session).to.be.undefined
   })

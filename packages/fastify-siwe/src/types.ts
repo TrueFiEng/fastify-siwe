@@ -1,7 +1,10 @@
 import type { SiweApi } from './SiweApi'
 import type { SiweMessage } from 'siwe'
 
-export type StoredSession = SiweMessage
+export type StoredSession = {
+  nonce: string
+  message: SiweMessage
+}
 
 export interface SessionStore {
   get(nonce: string): Promise<StoredSession | undefined>
