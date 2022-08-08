@@ -1,5 +1,6 @@
 {
   "name": "fastify-siwe-monorepo",
+  "private": "true",
   "version": "0.0.1",
   "scripts": {
     "build": "pnpm run -r build",
