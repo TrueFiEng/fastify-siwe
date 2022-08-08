@@ -1,10 +1,8 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
-import { SessionStore } from './types'
 import { SiweMessage } from 'siwe'
 import { siweAuthenticated } from './index'
 
 export interface RegisterSiweRoutesOpts {
-  store: SessionStore
   cookieSecure?: boolean
   cookieSameSite?: boolean | 'strict' | 'lax' | 'none'
   cookieMaxAge?: number
@@ -19,7 +17,6 @@ const DEFAULT_COOKIE_PATH = '/'
 export const registerSiweRoutes = (
   fastify: FastifyInstance,
   {
-    store,
     cookieSecure = DEFAULT_COOKIE_SECURE,
     cookieSameSite = DEFAULT_COOKIE_SAME_SITE,
     cookieMaxAge = DEFAULT_COOKIE_MAX_AGE,
@@ -72,7 +69,7 @@ export const registerSiweRoutes = (
 
   fastify.get(
     '/siwe/me',
-    { preHandler: siweAuthenticated({ store }) },
+    { preHandler: siweAuthenticated },
     async function handler(this: FastifyInstance, req: FastifyRequest, reply: FastifyReply) {
       if (!req.siwe.session) {
         return reply.status(401).send()

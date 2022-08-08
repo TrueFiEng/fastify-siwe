@@ -2,7 +2,7 @@ import { generateNonce, SiweMessage } from 'siwe'
 import { SessionStore } from './index'
 
 export class SiweApi {
-  constructor(private readonly _store: SessionStore) {}
+  constructor(public readonly _store: SessionStore) {}
 
   public session?: SiweMessage
 
