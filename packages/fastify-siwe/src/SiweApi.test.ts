@@ -28,13 +28,13 @@ describe('SiweApi', () => {
       nonce: await siweApi.generateNonce(),
     })
 
-    await siweApi.setSession(session)
+    await siweApi.setSession({ nonce: session.nonce, message: session })
 
     const storedSession = await store.get(session.nonce)
 
     expect(storedSession).to.exist
     expect(storedSession?.nonce).to.equal(session.nonce)
-    expect(storedSession?.address).to.equal(session.address)
+    expect(storedSession?.message.address).to.equal(session.address)
   })
 
   it('destroys session', async () => {
@@ -48,13 +48,13 @@ describe('SiweApi', () => {
       nonce: await siweApi.generateNonce(),
     })
 
-    await siweApi.setSession(session)
+    await siweApi.setSession({ nonce: session.nonce, message: session })
 
     const storedSession = await store.get(session.nonce)
 
     expect(storedSession).to.exist
     expect(storedSession?.nonce).to.equal(session.nonce)
-    expect(storedSession?.address).to.equal(session.address)
+    expect(storedSession?.message.address).to.equal(session.address)
 
     await siweApi.destroySession()
 

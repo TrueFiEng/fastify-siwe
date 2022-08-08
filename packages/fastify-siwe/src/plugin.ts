@@ -52,7 +52,7 @@ export const siweAuthenticated = async (
     if (!currentSession || siweMessage.nonce !== currentSession.nonce) {
       return reply.status(403).send('Invalid nonce')
     }
-    if (siweMessage.address !== currentSession.address) {
+    if (siweMessage.address !== currentSession.message.address) {
       return reply.status(403).send('Invalid address')
     }
     done()

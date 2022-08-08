@@ -1,5 +1,5 @@
 import { generateNonce, SiweMessage } from 'siwe'
-import { SessionStore } from './index'
+import { SessionStore, StoredSession } from './index'
 
 export class SiweApi {
   constructor(public readonly _store: SessionStore) {}
@@ -11,13 +11,13 @@ export class SiweApi {
     return nonce
   }
 
-  async setSession(session: SiweMessage) {
+  async setSession(session: StoredSession) {
     await this._store.save(session)
-    this.session = session
+    this.session = session.message
   }
 
   async destroySession(): Promise<void> {
-    if (!this.session) {
+    if (!this.session?.nonce) {
       throw new Error('No session to destroy')
     }
 

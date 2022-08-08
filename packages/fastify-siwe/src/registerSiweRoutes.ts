@@ -48,7 +48,7 @@ export const registerSiweRoutes = (
     ) {
       const { signature, message } = req.body
 
-      void req.siwe.setSession(message)
+      await req.siwe.setSession({ nonce: message.nonce, message })
 
       const authToken = JSON.stringify({
         message,
