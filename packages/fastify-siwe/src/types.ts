@@ -3,7 +3,7 @@ import type { SiweMessage } from 'siwe'
 
 export type StoredSession = {
   nonce: string
-  message: SiweMessage
+  message?: SiweMessage
 }
 
 export interface SessionStore {

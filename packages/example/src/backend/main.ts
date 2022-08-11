@@ -1,18 +1,17 @@
 import createFastify from 'fastify'
-import { siwePlugin, InMemoryStore, registerSiweRoutes } from 'fastify-siwe'
+import { signInWithEthereum, registerSiweRoutes } from 'fastify-siwe'
 import cors from '@fastify/cors'
 import cookie from '@fastify/cookie'
 
 const fastify = createFastify({ logger: true })
-const store = new InMemoryStore()
 
 void fastify.register(cors, {
   credentials: true,
   origin: true,
 })
 void fastify.register(cookie)
-void fastify.register(siwePlugin({ store }))
-registerSiweRoutes(fastify, { cookieSecure: true, cookieSameSite: 'none' })
+void fastify.register(signInWithEthereum())
+registerSiweRoutes(fastify)
 
 const start = async () => {
   try {

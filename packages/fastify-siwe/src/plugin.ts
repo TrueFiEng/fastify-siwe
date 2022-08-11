@@ -1,15 +1,16 @@
-import type { FastifyError, FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { SiweMessage } from 'siwe'
 import { SiweApi } from './SiweApi'
 import { SessionStore } from './types'
 import fastifyPlugin from 'fastify-plugin'
 import type {} from '@fastify/cookie' // Has to be there in order to override the Fastify types with cookies.
+import { InMemoryStore } from './InMemoryStore'
 
 export interface FastifySiweOptions {
-  store: SessionStore
+  store?: SessionStore
 }
 
-export const siwePlugin = ({ store }: FastifySiweOptions) =>
+export const signInWithEthereum = ({ store = new InMemoryStore() }: FastifySiweOptions = {}) =>
   fastifyPlugin(
     async (fastify: FastifyInstance) => {
       fastify.addHook('onReady', async () => {
@@ -24,42 +25,26 @@ export const siwePlugin = ({ store }: FastifySiweOptions) =>
         const token = request.cookies['__Host_auth_token']
         if (token) {
           try {
-            const { message } = JSON.parse(token)
-            request.siwe.session = message
+            const siweMessage = await parseAndValidateToken(token)
+
+            const currentSession = await store.get(siweMessage.nonce)
+            if (!currentSession || siweMessage.nonce !== currentSession.nonce) {
+              return reply.status(403).clearCookie('__Host_auth_token').send('Invalid nonce')
+            }
+
+            if (!currentSession.message) {
+              currentSession.message = siweMessage
+              await store.save(currentSession)
+            }
+            request.siwe.session = siweMessage
           } catch (err) {
-            // Ignore error
+            void reply.status(401).clearCookie('__Host_auth_token').send('Invalid token')
           }
         }
       })
     },
     { name: 'SIWE' }
   )
-
-export const siweAuthenticated = async (
-  request: FastifyRequest,
-  reply: FastifyReply,
-  done: (err?: FastifyError) => void
-) => {
-  const token = request.cookies['__Host_auth_token']
-  if (!token) {
-    return reply.code(401).send('Unauthorized')
-  }
-
-  try {
-    const siweMessage = await parseAndValidateToken(token)
-
-    const currentSession = await request.siwe._store.get(siweMessage.nonce)
-    if (!currentSession || siweMessage.nonce !== currentSession.nonce) {
-      return reply.status(403).send('Invalid nonce')
-    }
-    if (siweMessage.address !== currentSession.message.address) {
-      return reply.status(403).send('Invalid address')
-    }
-    done()
-  } catch (err) {
-    void reply.status(401).send('Invalid token')
-  }
-}
 
 async function parseAndValidateToken(token: string): Promise<SiweMessage> {
   const { message, signature } = JSON.parse(token)
