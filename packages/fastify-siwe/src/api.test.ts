@@ -13,7 +13,7 @@ import { SessionStore } from '../dist/src/types'
 
 chai.use(chaiAsPromised)
 
-describe.only('Fastify with SIWE API', () => {
+describe('Fastify with SIWE API', () => {
   let app: FastifyInstance
   let provider: MockProvider
   let signer: Wallet
@@ -232,7 +232,7 @@ describe('Fastify with incorrect configuration', () => {
   it('throws an error if @fastify/cookie is not registered', async () => {
     const app = createFastify()
     const store = new InMemoryStore()
-    void app.register(siwePlugin({ store }))
+    void app.register(signInWithEthereum({ store }))
     registerSiweRoutes(app)
 
     void expect(app.listen({ port: 8080 })).to.be.rejectedWith(
