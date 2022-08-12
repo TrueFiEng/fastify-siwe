@@ -70,6 +70,21 @@ describe('Fastify with SIWE API', () => {
     expect(authResponse.message.address).to.equal(await signer.getAddress())
   })
 
+  it('fails because of not signed in', async () => {
+    const response = await getNonce(app)
+    const nonce = JSON.parse(response.payload).nonce
+
+    const message = new SiweMessage({ ...defaultMessage, nonce })
+    const signature = await signer.signMessage(message.prepareMessage())
+
+    const authToken = JSON.stringify({ signature, message })
+
+    const authResponse = await getAuth(app, authToken)
+
+    expect(authResponse.statusCode).to.equal(403)
+    expect(authResponse.payload).to.equal('Invalid SIWE nonce')
+  })
+
   it('fails on re-using the same nonce during signing in', async () => {
     const response = await getNonce(app)
     const nonce = JSON.parse(response.payload).nonce
@@ -170,7 +185,7 @@ describe('Fastify with SIWE API', () => {
     const badToken = JSON.stringify({ signature: badSignature, message: badMessage })
     const response = await getAuth(app, badToken)
     expect(response.statusCode).to.equal(403)
-    expect(response.payload).to.equal('Invalid SIWE address')
+    expect(response.payload).to.equal('Invalid SIWE nonce')
   })
 
   it('fails on getting auth because session does not exist', async () => {
@@ -179,7 +194,7 @@ describe('Fastify with SIWE API', () => {
     const badToken = JSON.stringify({ signature, message })
     const response = await getAuth(app, badToken)
     expect(response.statusCode).to.equal(403)
-    expect(response.payload).to.equal('Session does not exist')
+    expect(response.payload).to.equal('Invalid SIWE nonce')
   })
 })
 
