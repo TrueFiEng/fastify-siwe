@@ -174,7 +174,7 @@ describe('Fastify with SIWE API', () => {
     expect(response.payload).to.equal('Invalid SIWE token')
   })
 
-  it('fails because not being session owner', async () => {
+  it('fails because of not being session owner', async () => {
     const token = await authenticate(signer, app)
     const { message } = JSON.parse(token)
 
