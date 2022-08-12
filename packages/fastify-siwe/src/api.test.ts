@@ -14,7 +14,7 @@ import { getNonce, createAuthMessage, signIn, getAuth, authenticate } from './ut
 
 chai.use(chaiAsPromised)
 
-describe.only('Fastify with SIWE API', () => {
+describe('Fastify with SIWE API', () => {
   let app: FastifyInstance
   let provider: MockProvider
   let signer: Wallet
