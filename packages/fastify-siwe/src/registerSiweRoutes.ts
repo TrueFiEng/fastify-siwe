@@ -41,7 +41,7 @@ export const registerSiweRoutes = (fastify: FastifyInstance, opts?: RegisterSiwe
     ) {
       const { signature, message } = req.body
 
-      const currentSession = await req.siwe._store.get(message.nonce)
+      const currentSession = await req.siwe.getSession(message.nonce)
 
       if (!currentSession) {
         return reply.status(403).send('Session not found')

@@ -1,8 +1,9 @@
 import { generateNonce, SiweMessage } from 'siwe'
 import { SessionStore } from './index'
+import { StoredSession } from './types'
 
 export class SiweApi {
-  constructor(public readonly _store: SessionStore) {}
+  constructor(private readonly _store: SessionStore) {}
 
   public session?: SiweMessage
 
@@ -12,6 +13,10 @@ export class SiweApi {
       nonce,
     })
     return nonce
+  }
+
+  async getSession(nonce: string): Promise<StoredSession | undefined> {
+    return await this._store.get(nonce)
   }
 
   async destroySession(): Promise<void> {
