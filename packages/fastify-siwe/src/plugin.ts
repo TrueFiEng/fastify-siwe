@@ -19,7 +19,6 @@ export const signInWithEthereum = ({ store = new InMemoryStore() }: FastifySiweO
         }
       })
 
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       fastify.addHook('preHandler', async (request: FastifyRequest, reply: FastifyReply) => {
         request.siwe = new SiweApi(store)
         const token = request.cookies['__Host_auth_token']
@@ -42,7 +41,7 @@ export const signInWithEthereum = ({ store = new InMemoryStore() }: FastifySiweO
     { name: 'SIWE' }
   )
 
-async function parseAndValidateToken(token: string): Promise<SiweMessage> {
+export async function parseAndValidateToken(token: string): Promise<SiweMessage> {
   const { message, signature } = JSON.parse(token)
 
   const siweMessage = new SiweMessage(message)

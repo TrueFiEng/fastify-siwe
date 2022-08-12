@@ -18,9 +18,9 @@ export class SiweApi {
     const currentSession = await this._store.get(message.nonce)
 
     if (!currentSession) {
-      throw new Error('Session not found')
+      throw new Error('Session not initialized')
     }
-    if (currentSession?.message) {
+    if (currentSession.message) {
       throw new Error('Session already exists')
     }
 

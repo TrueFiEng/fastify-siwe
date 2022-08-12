@@ -10,19 +10,22 @@ import { registerSiweRoutes } from './registerSiweRoutes'
 import { Wallet } from 'ethers'
 import * as chaiAsPromised from 'chai-as-promised'
 import { SessionStore } from './types'
+import { getNonce, createAuthMessage, signIn, getAuth } from './utils'
 
 chai.use(chaiAsPromised)
 
-describe('Fastify with SIWE API', () => {
+describe.only('Fastify with SIWE API', () => {
   let app: FastifyInstance
   let provider: MockProvider
   let signer: Wallet
   let store: SessionStore
+  let defaultMessage: any
 
   before(async () => {
     provider = new MockProvider({ ganacheOptions: { chain: { chainId: 1 } } as any })
     signer = provider.getWallets()[0]
     app = createFastify()
+    defaultMessage = createAuthMessage(signer)
 
     store = new InMemoryStore()
 
@@ -31,45 +34,27 @@ describe('Fastify with SIWE API', () => {
     registerSiweRoutes(app)
   })
 
+  after(async () => {
+    await app.close()
+  })
+
   it('initializes session', async () => {
-    const { nonce } = (
-      await app.inject({
-        method: 'POST',
-        url: '/siwe/init',
-      })
-    ).json()
+    const response = await getNonce(app)
+    expect(response.statusCode).to.equal(200)
+    const nonce = JSON.parse(response.payload).nonce
     expect(nonce).to.match(/^[a-zA-Z0-9_]{17}$/)
     expect(await store.get(nonce)).to.deep.equal({ nonce })
   })
 
   it('authenticates correctly', async () => {
-    const { nonce } = (
-      await app.inject({
-        method: 'POST',
-        url: '/siwe/init',
-      })
-    ).json()
+    const response = await getNonce(app)
+    const nonce = JSON.parse(response.payload).nonce
     expect(await store.get(nonce)).to.deep.equal({ nonce })
 
-    const message = new SiweMessage({
-      domain: 'https://example.com',
-      address: await signer.getAddress(),
-      statement: 'Sign in with Ethereum to the app.',
-      uri: 'https://example.com',
-      version: '1',
-      chainId: 1,
-      nonce,
-    })
+    const message = new SiweMessage({ ...defaultMessage, nonce })
     const signature = await signer.signMessage(message.prepareMessage())
 
-    await app.inject({
-      method: 'POST',
-      url: '/siwe/signin',
-      payload: {
-        signature,
-        message,
-      },
-    })
+    await signIn(app, { signature, message })
 
     expect(await store.get(nonce)).to.deep.equal({
       nonce,
@@ -78,15 +63,7 @@ describe('Fastify with SIWE API', () => {
 
     const authToken = JSON.stringify({ signature, message })
 
-    const authResponse: { loggedIn: boolean; message: SiweMessage } = (
-      await app.inject({
-        method: 'GET',
-        url: '/siwe/me',
-        cookies: {
-          __Host_auth_token: authToken,
-        },
-      })
-    ).json()
+    const authResponse: { loggedIn: boolean; message: SiweMessage } = (await getAuth(app, authToken)).json()
 
     expect(authResponse.loggedIn).to.equal(true)
     expect(authResponse.message.nonce).to.equal(nonce)
@@ -96,72 +73,33 @@ describe('Fastify with SIWE API', () => {
   it('fails on re-use the same nonce', async () => {
     const secondSigner = provider.getWallets()[1]
 
-    const { nonce } = (
-      await app.inject({
-        method: 'POST',
-        url: '/siwe/init',
-      })
-    ).json()
+    const response = await getNonce(app)
+    const nonce = JSON.parse(response.payload).nonce
 
-    const message = new SiweMessage({
-      domain: 'https://example.com',
-      address: await signer.getAddress(),
-      statement: 'Sign in with Ethereum to the app.',
-      uri: 'https://example.com',
-      version: '1',
-      chainId: 1,
-      nonce,
-    })
-
+    const message = new SiweMessage({ ...defaultMessage, nonce })
     const signature = await signer.signMessage(message.prepareMessage())
+
+    await signIn(app, { signature, message })
+
     const authToken = JSON.stringify({ signature, message })
 
-    await app.inject({
-      method: 'POST',
-      url: '/siwe/signin',
-      payload: {
-        signature,
-        message,
-      },
-    })
-
-    const authResponse: { loggedIn: boolean; message: SiweMessage } = (
-      await app.inject({
-        method: 'GET',
-        url: '/siwe/me',
-        cookies: {
-          __Host_auth_token: authToken,
-        },
-      })
-    ).json()
+    const authResponse: { loggedIn: boolean; message: SiweMessage } = (await getAuth(app, authToken)).json()
 
     expect(authResponse.loggedIn).to.equal(true)
     expect(authResponse.message.nonce).to.equal(nonce)
     expect(authResponse.message.address).to.equal(await signer.getAddress())
 
-    const messageWithReusedNonce = new SiweMessage({
-      domain: 'https://example.com',
-      address: await secondSigner.getAddress(),
-      statement: 'Sign in with Ethereum to the app.',
-      uri: 'https://example.com',
-      version: '1',
-      chainId: 1,
-      nonce,
-    })
-
+    const secondMessage = createAuthMessage(secondSigner)
+    const messageWithReusedNonce = new SiweMessage({ ...secondMessage, nonce })
     const signatureWithReusedNonce = await secondSigner.signMessage(messageWithReusedNonce.prepareMessage())
 
-    const secondAuthResponse = await app.inject({
-      method: 'POST',
-      url: '/siwe/signin',
-      payload: {
-        signature: signatureWithReusedNonce,
-        message: messageWithReusedNonce,
-      },
+    const signInResponse = await signIn(app, {
+      signature: signatureWithReusedNonce,
+      message: messageWithReusedNonce,
     })
 
-    expect(secondAuthResponse.statusCode).to.equal(403)
-    expect(secondAuthResponse.payload).to.equal('Session already exists')
+    expect(signInResponse.statusCode).to.equal(403)
+    expect(signInResponse.payload).to.equal('Session already exists')
   })
 
   it('returns 401 because of invalid token', async () => {
@@ -170,67 +108,58 @@ describe('Fastify with SIWE API', () => {
       message: 'invalid',
     })
 
-    const authResponse = await app.inject({
-      method: 'GET',
-      url: '/siwe/me',
-      cookies: {
-        __Host_auth_token: authToken,
-      },
-    })
+    const authResponse = await getAuth(app, authToken)
 
     expect(authResponse.statusCode).to.equal(401)
-    expect(authResponse.body).to.equal('Invalid SIWE token')
+    expect(authResponse.payload).to.equal('Invalid SIWE token')
   })
 
-  it('returns 403 because of invalid nonce/not initialized session', async () => {
+  it('returns 403 because of not initialized session', async () => {
     const invalidNonce = '0'.repeat(17)
-    const message = new SiweMessage({
-      domain: 'https://example.com',
-      address: await signer.getAddress(),
-      statement: 'Sign in with Ethereum to the app.',
-      uri: 'https://example.com',
-      version: '1',
-      chainId: 1,
-      nonce: invalidNonce,
-    })
+    const message = new SiweMessage({ ...defaultMessage, nonce: invalidNonce })
     const signature = await signer.signMessage(message.prepareMessage())
 
-    const response = await app.inject({
-      method: 'POST',
-      url: '/siwe/signin',
-      payload: {
-        signature,
-        message,
-      },
-    })
+    const response = await signIn(app, { signature, message })
 
     expect(response.statusCode).to.equal(403)
+    expect(response.payload).to.equal('Session not initialized')
   })
 
-  it('2 apis should generate different nonces', async () => {
-    const secondApp = createFastify()
+  it('returns 403 because of invalid nonce', async () => {
+    const response = await getNonce(app)
+    const nonce = JSON.parse(response.payload).nonce
 
-    const store = new InMemoryStore()
+    const message = new SiweMessage({ ...defaultMessage, nonce: nonce.slice(0, -1) })
+    const signature = await signer.signMessage(message.prepareMessage())
 
-    void secondApp.register(cookie)
-    void secondApp.register(signInWithEthereum({ store }))
-    registerSiweRoutes(secondApp)
+    const signInResponse = await signIn(app, { signature, message })
 
-    const firstPromise = app.inject({
-      method: 'POST',
-      url: '/siwe/init',
-    })
+    expect(signInResponse.statusCode).to.equal(403)
+    expect(signInResponse.payload).to.equal('Session not initialized')
+  })
 
-    const secondPromise = secondApp.inject({
-      method: 'POST',
-      url: '/siwe/init',
-    })
+  it('fails on sign in because of invalid signature', async () => {
+    const response = await getNonce(app)
+    const nonce = JSON.parse(response.payload).nonce
 
-    const [firstResponse, secondResponse] = await Promise.all([firstPromise, secondPromise])
+    const message = new SiweMessage({ ...defaultMessage, nonce })
+    const signature = 'invalid'
 
-    expect(firstResponse.statusCode).to.equal(200)
-    expect(secondResponse.statusCode).to.equal(200)
-    expect(firstResponse.json().nonce).to.not.equal(secondResponse.json().nonce)
+    const signInResponse = await signIn(app, { signature, message })
+    expect(signInResponse.statusCode).to.equal(403)
+  })
+
+  it('fails on sign in because of invalid message', async () => {
+    const response = await getNonce(app)
+    const nonce = JSON.parse(response.payload).nonce
+
+    const message = new SiweMessage({ ...defaultMessage, nonce })
+    const signature = await signer.signMessage(message.prepareMessage())
+
+    const invalidMessage = new SiweMessage({ ...message, address: '0x0000000000000000000000000000000000000000' })
+
+    const signInResponse = await signIn(app, { signature, message: invalidMessage })
+    expect(signInResponse.statusCode).to.equal(403)
   })
 })
 

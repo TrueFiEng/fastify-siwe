@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { SiweMessage } from 'siwe'
+import { parseAndValidateToken } from './plugin'
 
 export interface RegisterSiweRoutesOpts {
   cookieSecure?: boolean
@@ -40,20 +41,17 @@ export const registerSiweRoutes = (fastify: FastifyInstance, opts: RegisterSiweR
       reply: FastifyReply
     ) {
       const { signature, message } = req.body
+      const token = JSON.stringify({ signature, message })
 
       try {
+        await parseAndValidateToken(token)
         await req.siwe.setMessage(message)
       } catch (err: any) {
         void reply.status(403).send(err.message)
       }
 
-      const authToken = JSON.stringify({
-        message,
-        signature,
-      })
-
       void reply
-        .setCookie('__Host_auth_token', authToken, {
+        .setCookie('__Host_auth_token', token, {
           httpOnly: true,
           secure: opts.cookieSecure,
           sameSite: opts.cookieSameSite,
