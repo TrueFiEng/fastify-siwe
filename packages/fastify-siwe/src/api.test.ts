@@ -179,7 +179,7 @@ describe('Fastify with SIWE API', () => {
     })
 
     expect(authResponse.statusCode).to.equal(401)
-    expect(authResponse.body).to.equal('Invalid token')
+    expect(authResponse.body).to.equal('Invalid SIWE token')
   })
 
   it('returns 403 because of invalid nonce/not initialized session', async () => {
