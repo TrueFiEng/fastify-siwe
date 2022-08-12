@@ -9,7 +9,7 @@ import cookie from '@fastify/cookie'
 import { registerSiweRoutes } from './registerSiweRoutes'
 import { Wallet } from 'ethers'
 import * as chaiAsPromised from 'chai-as-promised'
-import { SessionStore } from '../dist/src/types'
+import { SessionStore } from './types'
 
 chai.use(chaiAsPromised)
 
