@@ -16,7 +16,7 @@ export class SiweApi {
   }
 
   async getSession(nonce: string): Promise<StoredSession | undefined> {
-    return await this._store.get(nonce)
+    return this._store.get(nonce)
   }
 
   async destroySession(): Promise<void> {
