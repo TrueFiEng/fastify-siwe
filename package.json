@@ -3,10 +3,13 @@
   "private": "true",
   "version": "0.0.1",
   "scripts": {
+    "preinstall": "npx only-allow pnpm",
     "build": "pnpm run -r build",
     "test": "pnpm run -r test",
     "lint": "pnpm run -r lint",
-    "lint:fix": "pnpm run -r lint:fix"
+    "lint:fix": "pnpm run -r lint:fix",
+    "version": "pnpm changeset version && pnpm install",
+    "release": "pnpm build && pnpm changeset publish"
   },
   "author": "truefieng",
   "license": "MIT",
@@ -15,5 +18,8 @@
   },
   "devDependencies": {
     "eslint-plugin-no-only-tests": "^3.0.0"
+  },
+  "dependencies": {
+    "@changesets/cli": "^2.24.2"
   }
 }
