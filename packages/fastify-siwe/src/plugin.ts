@@ -29,7 +29,7 @@ export const signInWithEthereum = ({ store = new InMemoryStore() }: FastifySiweO
 
             const currentSession = await store.get(siweMessage.nonce)
             if (!currentSession || siweMessage.nonce !== currentSession.nonce) {
-              return reply.status(403).clearCookie('__Host_auth_token').send('Invalid nonce')
+              return reply.status(403).clearCookie('__Host_auth_token').send('Invalid SIWE nonce')
             }
 
             request.siwe.session = siweMessage
