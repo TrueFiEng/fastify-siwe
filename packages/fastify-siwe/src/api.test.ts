@@ -39,7 +39,7 @@ describe('Fastify with SIWE API', () => {
       })
     ).json()
     expect(nonce).to.match(/^[a-zA-Z0-9_]{17}$/)
-    expect(await store.get(nonce)).to.exist
+    expect(await store.get(nonce)).to.deep.equal({ nonce })
   })
 
   it('authenticates correctly', async () => {
@@ -49,6 +49,7 @@ describe('Fastify with SIWE API', () => {
         url: '/siwe/init',
       })
     ).json()
+    expect(await store.get(nonce)).to.deep.equal({ nonce })
 
     const message = new SiweMessage({
       domain: 'https://example.com',
@@ -68,6 +69,11 @@ describe('Fastify with SIWE API', () => {
         signature,
         message,
       },
+    })
+
+    expect(await store.get(nonce)).to.deep.equal({
+      nonce,
+      message,
     })
 
     const authToken = JSON.stringify({ signature, message })

@@ -41,13 +41,10 @@ export const registerSiweRoutes = (fastify: FastifyInstance, opts?: RegisterSiwe
     ) {
       const { signature, message } = req.body
 
-      const currentSession = await req.siwe.getSession(message.nonce)
-
-      if (!currentSession) {
-        return reply.status(403).send('Session not found')
-      }
-      if (currentSession?.message) {
-        return reply.status(403).send('Session already exists')
+      try {
+        await req.siwe.setMessage(message)
+      } catch (err: any) {
+        void reply.status(403).send(err.message)
       }
 
       const authToken = JSON.stringify({
