@@ -15,7 +15,7 @@ const defaultOpts: RegisterSiweRoutesOpts = {
   cookiePath: '/',
 }
 
-export const registerSiweRoutes = (fastify: FastifyInstance, opts?: RegisterSiweRoutesOpts) => {
+export const registerSiweRoutes = (fastify: FastifyInstance, opts: RegisterSiweRoutesOpts = defaultOpts) => {
   fastify.post(
     '/siwe/init',
     {},
@@ -55,10 +55,10 @@ export const registerSiweRoutes = (fastify: FastifyInstance, opts?: RegisterSiwe
       void reply
         .setCookie('__Host_auth_token', authToken, {
           httpOnly: true,
-          secure: opts?.cookieSecure ?? defaultOpts.cookieSecure,
-          sameSite: opts?.cookieSameSite ?? defaultOpts.cookieSameSite,
-          maxAge: opts?.cookieMaxAge ?? defaultOpts.cookieMaxAge,
-          path: opts?.cookiePath ?? defaultOpts.cookiePath,
+          secure: opts.cookieSecure,
+          sameSite: opts.cookieSameSite,
+          maxAge: opts.cookieMaxAge,
+          path: opts.cookiePath,
         })
         .send()
     }
