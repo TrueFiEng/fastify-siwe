@@ -10,7 +10,7 @@ import { registerSiweRoutes } from './registerSiweRoutes'
 import { Wallet } from 'ethers'
 import * as chaiAsPromised from 'chai-as-promised'
 import { SessionStore } from './types'
-import { getNonce, createAuthMessage, signIn, getAuth, authenticate } from './utils'
+import { getNonce, createAuthMessage, signIn, getAuth, authenticate } from './testUtils'
 
 chai.use(chaiAsPromised)
 
