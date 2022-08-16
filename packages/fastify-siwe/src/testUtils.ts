@@ -14,6 +14,17 @@ export async function signIn(
   return app.inject({ method: 'POST', url: '/siwe/signin', payload: { signature, message }, validate: true })
 }
 
+export async function signOut(app: FastifyInstance, token: string) {
+  return app.inject({
+    method: 'GET',
+    url: '/siwe/signout',
+    validate: true,
+    cookies: {
+      __Host_auth_token: token,
+    },
+  })
+}
+
 export async function getAuth(app: FastifyInstance, token: string) {
   return app.inject({
     method: 'GET',
@@ -37,18 +48,18 @@ export function createAuthMessage(wallet: Wallet) {
 }
 
 export async function authenticate(wallet: Wallet, app: FastifyInstance) {
-  const nonceResponse = await getNonce(app)
-  const nonceResponseBody = JSON.parse(nonceResponse.body)
-  const message = createAuthMessage(wallet)
+  const { nonce } = JSON.parse((await getNonce(app)).payload)
+  const defaultMessage = createAuthMessage(wallet)
 
-  const siweMessage = new SiweMessage({
-    ...message,
-    nonce: nonceResponseBody.nonce,
+  const message = new SiweMessage({
+    ...defaultMessage,
+    nonce,
   })
 
-  const signature = await wallet.signMessage(siweMessage.prepareMessage())
-  const token = JSON.stringify({ signature, message: siweMessage })
+  const signature = await wallet.signMessage(message.prepareMessage())
+  await signIn(app, { signature, message })
 
+  const token = JSON.stringify({ signature, message: message })
   await getAuth(app, token)
   return token
 }

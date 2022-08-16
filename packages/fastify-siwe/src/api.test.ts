@@ -10,7 +10,7 @@ import { registerSiweRoutes } from './registerSiweRoutes'
 import { Wallet } from 'ethers'
 import * as chaiAsPromised from 'chai-as-promised'
 import { SessionStore } from './types'
-import { getNonce, createAuthMessage, signIn, getAuth, authenticate } from './testUtils'
+import { getNonce, createAuthMessage, signIn, getAuth, authenticate, signOut } from './testUtils'
 
 chai.use(chaiAsPromised)
 
@@ -41,21 +41,21 @@ describe('Fastify with SIWE API', () => {
   it('initializes session', async () => {
     const response = await getNonce(app)
     expect(response.statusCode).to.equal(200)
-    const nonce = JSON.parse(response.payload).nonce
+    const { nonce } = JSON.parse(response.payload)
     expect(nonce).to.match(/^[a-zA-Z0-9_]{17}$/)
     expect(await store.get(nonce)).to.deep.equal({ nonce })
   })
 
   it('authenticates correctly', async () => {
-    const response = await getNonce(app)
-    const nonce = JSON.parse(response.payload).nonce
+    const { nonce } = JSON.parse((await getNonce(app)).payload)
     expect(await store.get(nonce)).to.deep.equal({ nonce })
 
     const message = new SiweMessage({ ...defaultMessage, nonce })
     const signature = await signer.signMessage(message.prepareMessage())
 
-    await signIn(app, { signature, message })
-
+    const signInResponse = await signIn(app, { signature, message })
+    expect(signInResponse.statusCode).to.equal(200)
+    expect(signInResponse.headers['set-cookie']).to.exist
     expect(await store.get(nonce)).to.deep.equal({
       nonce,
       message,
@@ -71,8 +71,7 @@ describe('Fastify with SIWE API', () => {
   })
 
   it('fails because of not signed in', async () => {
-    const response = await getNonce(app)
-    const nonce = JSON.parse(response.payload).nonce
+    const { nonce } = JSON.parse((await getNonce(app)).payload)
 
     const message = new SiweMessage({ ...defaultMessage, nonce })
     const signature = await signer.signMessage(message.prepareMessage())
@@ -86,16 +85,11 @@ describe('Fastify with SIWE API', () => {
   })
 
   it('fails on re-using the same nonce during signing in', async () => {
-    const response = await getNonce(app)
-    const nonce = JSON.parse(response.payload).nonce
-
+    const { nonce } = JSON.parse((await getNonce(app)).payload)
     const message = new SiweMessage({ ...defaultMessage, nonce })
     const signature = await signer.signMessage(message.prepareMessage())
-
     await signIn(app, { signature, message })
-
     const authToken = JSON.stringify({ signature, message })
-
     const authResponse: { loggedIn: boolean; message: SiweMessage } = (await getAuth(app, authToken)).json()
 
     expect(authResponse.loggedIn).to.equal(true)
@@ -106,7 +100,6 @@ describe('Fastify with SIWE API', () => {
     const secondMessage = createAuthMessage(secondSigner)
     const messageWithReusedNonce = new SiweMessage({ ...secondMessage, nonce })
     const signatureWithReusedNonce = await secondSigner.signMessage(messageWithReusedNonce.prepareMessage())
-
     const signInResponse = await signIn(app, {
       signature: signatureWithReusedNonce,
       message: messageWithReusedNonce,
@@ -128,8 +121,7 @@ describe('Fastify with SIWE API', () => {
   })
 
   it('fails on signing in because of invalid nonce', async () => {
-    const response = await getNonce(app)
-    const nonce = JSON.parse(response.payload).nonce
+    const { nonce } = JSON.parse((await getNonce(app)).payload)
 
     const message = new SiweMessage({ ...defaultMessage, nonce: nonce.slice(0, -1) })
     const signature = await signer.signMessage(message.prepareMessage())
@@ -141,19 +133,18 @@ describe('Fastify with SIWE API', () => {
   })
 
   it('fails on signing in because of invalid signature', async () => {
-    const response = await getNonce(app)
-    const nonce = JSON.parse(response.payload).nonce
+    const { nonce } = JSON.parse((await getNonce(app)).payload)
 
     const message = new SiweMessage({ ...defaultMessage, nonce })
     const signature = 'invalid'
 
     const signInResponse = await signIn(app, { signature, message })
     expect(signInResponse.statusCode).to.equal(403)
+    expect(signInResponse.payload).to.equal('Invalid SIWE token')
   })
 
   it('fails on signing in because of invalid message', async () => {
-    const response = await getNonce(app)
-    const nonce = JSON.parse(response.payload).nonce
+    const { nonce } = JSON.parse((await getNonce(app)).payload)
 
     const message = new SiweMessage({ ...defaultMessage, nonce })
     const signature = await signer.signMessage(message.prepareMessage())
@@ -162,6 +153,7 @@ describe('Fastify with SIWE API', () => {
 
     const signInResponse = await signIn(app, { signature, message: invalidMessage })
     expect(signInResponse.statusCode).to.equal(403)
+    expect(signInResponse.payload).to.equal('Invalid SIWE token')
   })
 
   it('fails because of invalid nonce', async () => {
@@ -172,6 +164,18 @@ describe('Fastify with SIWE API', () => {
     const response = await getAuth(app, badToken)
     expect(response.statusCode).to.equal(401)
     expect(response.payload).to.equal('Invalid SIWE token')
+  })
+
+  it('fails on protected route because of missing token', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/siwe/me',
+      validate: true,
+      cookies: {
+        __Host_auth_token: '',
+      },
+    })
+    expect(response.statusCode).to.equal(401)
   })
 
   it('fails because of not being session owner', async () => {
@@ -195,6 +199,16 @@ describe('Fastify with SIWE API', () => {
     const response = await getAuth(app, badToken)
     expect(response.statusCode).to.equal(403)
     expect(response.payload).to.equal('Invalid SIWE nonce')
+  })
+
+  it('signs out correctly', async () => {
+    const token = await authenticate(signer, app)
+    const { message } = JSON.parse(token)
+    expect(await store.get(message.nonce)).to.exist
+    const response = await signOut(app, token)
+    expect(response.statusCode).to.equal(200)
+    expect(response.headers['set-cookie']).to.exist
+    expect(await store.get(message.nonce)).to.not.exist
   })
 })
 

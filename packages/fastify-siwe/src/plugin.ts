@@ -27,7 +27,7 @@ export const signInWithEthereum = ({ store = new InMemoryStore() }: FastifySiweO
             const siweMessage = await parseAndValidateToken(token)
 
             const currentSession = await store.get(siweMessage.nonce)
-            if (!currentSession || siweMessage.nonce !== currentSession.message?.nonce) {
+            if (!currentSession || currentSession.message?.address !== siweMessage.address) {
               return reply.status(403).clearCookie('__Host_auth_token').send('Invalid SIWE nonce')
             }
 
@@ -44,9 +44,12 @@ export const signInWithEthereum = ({ store = new InMemoryStore() }: FastifySiweO
 export async function parseAndValidateToken(token: string): Promise<SiweMessage> {
   const { message, signature } = JSON.parse(token)
 
-  const siweMessage = new SiweMessage(message)
-
-  await siweMessage.verify({ signature })
+  try {
+    const siweMessage = new SiweMessage(message)
+    await siweMessage.verify({ signature })
+  } catch (err) {
+    throw new Error('Invalid SIWE token')
+  }
 
   return message
 }
