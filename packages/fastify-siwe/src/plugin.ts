@@ -5,6 +5,8 @@ import { SessionStore } from './types'
 import fastifyPlugin from 'fastify-plugin'
 import type {} from '@fastify/cookie' // Has to be there in order to override the Fastify types with cookies.
 import { InMemoryStore } from './InMemoryStore'
+import { ethers, utils } from 'ethers'
+import { EIP1271_MAGIC_VALUE, GNOSIS_SAFE_ABI } from './constants'
 
 export interface FastifySiweOptions {
   store?: SessionStore
@@ -24,6 +26,45 @@ export const signInWithEthereum = ({ store = new InMemoryStore() }: FastifySiweO
         const token = request.cookies['__Host_auth_token']
         if (token) {
           try {
+            const { message, signature } = JSON.parse(token)
+
+            if (signature === '0x') {
+              const siweMessage = new SiweMessage(message)
+
+              const currentSession = await store.get(siweMessage.nonce)
+
+              if (!currentSession) {
+                return reply.status(401).clearCookie('__Host_auth_token').send()
+              }
+
+              const path = request?.routerPath
+              if (path === '/siwe/signout') {
+                request.siwe.session = siweMessage
+                return
+              }
+
+              const provider = ethers.getDefaultProvider(message.chainId)
+              const contract = new ethers.Contract(
+                message.address,
+                new ethers.utils.Interface(GNOSIS_SAFE_ABI),
+                provider
+              )
+
+              const msgHash = utils.hashMessage(siweMessage.prepareMessage())
+              let value: string | undefined
+              try {
+                value = await contract.isValidSignature(msgHash, '0x')
+              } catch (err) {
+                console.error(err)
+              }
+              console.log({ msgHash, value })
+              if (value !== EIP1271_MAGIC_VALUE) {
+                return reply.status(403).send()
+              }
+              request.siwe.session = siweMessage
+              return
+            }
+
             const siweMessage = await parseAndValidateToken(token)
 
             const currentSession = await store.get(siweMessage.nonce)

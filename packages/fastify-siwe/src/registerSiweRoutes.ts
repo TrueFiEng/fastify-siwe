@@ -43,11 +43,13 @@ export const registerSiweRoutes = (fastify: FastifyInstance, opts: RegisterSiweR
       const { signature, message } = req.body
       const token = JSON.stringify({ signature, message })
 
-      try {
-        await parseAndValidateToken(token)
-        await req.siwe.setMessage(message)
-      } catch (err: any) {
-        void reply.status(403).send(err.message)
+      if (signature !== '0x') {
+        try {
+          await parseAndValidateToken(token)
+          await req.siwe.setMessage(message)
+        } catch (err: any) {
+          return reply.status(403).send(err.message)
+        }
       }
 
       void reply
@@ -77,7 +79,11 @@ export const registerSiweRoutes = (fastify: FastifyInstance, opts: RegisterSiweR
     '/siwe/signout',
     {},
     async function handler(this: FastifyInstance, req: FastifyRequest, reply: FastifyReply) {
-      await req.siwe.destroySession()
+      try {
+        await req.siwe.destroySession()
+      } catch (err) {
+        console.error(err)
+      }
       void reply.clearCookie('__Host_auth_token').send()
     }
   )
