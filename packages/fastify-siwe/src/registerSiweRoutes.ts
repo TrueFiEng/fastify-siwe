@@ -87,7 +87,11 @@ export const registerSiweRoutes = (fastify: FastifyInstance, opts: RegisterSiweR
       } catch (err) {
         console.error(err)
       }
-      void reply.clearCookie('__Host_auth_token').send()
+      void reply
+        .clearCookie('__Host_auth_token', {
+          path: opts.cookiePath,
+        })
+        .send()
     }
   )
 
