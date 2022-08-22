@@ -41,6 +41,9 @@ export const registerSiweRoutes = (fastify: FastifyInstance, opts: RegisterSiweR
       reply: FastifyReply
     ) {
       const { signature, message } = req.body
+      if (!signature || !message) {
+        return reply.status(422).send({ message: 'Expected prepareMessage object and signature as body.' })
+      }
       const token = JSON.stringify({ signature, message })
 
       if (signature !== '0x') {

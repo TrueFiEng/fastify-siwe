@@ -34,7 +34,7 @@ export const signInWithEthereum = ({ store = new InMemoryStore() }: FastifySiweO
               const currentSession = await store.get(siweMessage.nonce)
 
               if (!currentSession) {
-                return reply.status(401).clearCookie('__Host_auth_token').send()
+                return reply.status(403).clearCookie('__Host_auth_token').send()
               }
 
               const path = request?.routerPath
@@ -44,11 +44,7 @@ export const signInWithEthereum = ({ store = new InMemoryStore() }: FastifySiweO
               }
 
               const provider = ethers.getDefaultProvider(message.chainId)
-              const contract = new ethers.Contract(
-                message.address,
-                new ethers.utils.Interface(GNOSIS_SAFE_ABI),
-                provider
-              )
+              const contract = new ethers.Contract(message.address, new utils.Interface(GNOSIS_SAFE_ABI), provider)
 
               const msgHash = utils.hashMessage(siweMessage.prepareMessage())
               let value: string | undefined
@@ -57,7 +53,6 @@ export const signInWithEthereum = ({ store = new InMemoryStore() }: FastifySiweO
               } catch (err) {
                 console.error(err)
               }
-              console.log({ msgHash, value })
               if (value !== EIP1271_MAGIC_VALUE) {
                 return reply.status(403).send()
               }
@@ -68,7 +63,7 @@ export const signInWithEthereum = ({ store = new InMemoryStore() }: FastifySiweO
             const siweMessage = await parseAndValidateToken(token)
 
             const currentSession = await store.get(siweMessage.nonce)
-            if (!currentSession || currentSession.message?.address !== siweMessage.address) {
+            if (!currentSession?.message || currentSession.message.address !== siweMessage.address) {
               return reply.status(403).clearCookie('__Host_auth_token').send('Invalid SIWE nonce')
             }
 
