@@ -34,7 +34,12 @@ export const signInWithEthereum = ({ store = new InMemoryStore() }: FastifySiweO
               const currentSession = await store.get(siweMessage.nonce)
 
               if (!currentSession) {
-                return reply.status(403).clearCookie('__Host_auth_token').send()
+                return reply
+                  .status(403)
+                  .clearCookie('__Host_auth_token', {
+                    path: '/',
+                  })
+                  .send()
               }
 
               const path = request?.routerPath
@@ -64,12 +69,22 @@ export const signInWithEthereum = ({ store = new InMemoryStore() }: FastifySiweO
 
             const currentSession = await store.get(siweMessage.nonce)
             if (!currentSession?.message || currentSession.message.address !== siweMessage.address) {
-              return reply.status(403).clearCookie('__Host_auth_token').send('Invalid SIWE nonce')
+              return reply
+                .status(403)
+                .clearCookie('__Host_auth_token', {
+                  path: '/',
+                })
+                .send('Invalid SIWE nonce')
             }
 
             request.siwe.session = siweMessage
           } catch (err) {
-            void reply.status(401).clearCookie('__Host_auth_token').send('Invalid SIWE token')
+            void reply
+              .status(401)
+              .clearCookie('__Host_auth_token', {
+                path: '/',
+              })
+              .send('Invalid SIWE token')
           }
         }
       })
