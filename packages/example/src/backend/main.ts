@@ -11,7 +11,7 @@ void fastify.register(cors, {
 })
 void fastify.register(cookie)
 void fastify.register(signInWithEthereum())
-registerSiweRoutes(fastify)
+registerSiweRoutes(fastify, { cookieSecure: true, cookieSameSite: 'none' })
 
 const start = async () => {
   try {
