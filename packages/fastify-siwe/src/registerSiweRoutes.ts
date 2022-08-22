@@ -6,15 +6,13 @@ export interface RegisterSiweRoutesOpts {
   cookieSecure?: boolean
   cookieSameSite?: boolean | 'strict' | 'lax' | 'none'
   cookieMaxAge?: number
+  cookiePath?: string
 }
 
-const defaultOpts: RegisterSiweRoutesOpts = {
-  cookieSecure: process.env.NODE_ENV !== 'development',
-  cookieSameSite: 'strict',
-  cookieMaxAge: 60 * 60 * 24, // 1 day
-}
-
-export const registerSiweRoutes = (fastify: FastifyInstance, opts: RegisterSiweRoutesOpts = defaultOpts) => {
+export const registerSiweRoutes = (
+  fastify: FastifyInstance,
+  { cookieSecure, cookieSameSite, cookieMaxAge, cookiePath }: RegisterSiweRoutesOpts
+) => {
   fastify.post(
     '/siwe/init',
     {},
@@ -56,10 +54,10 @@ export const registerSiweRoutes = (fastify: FastifyInstance, opts: RegisterSiweR
       void reply
         .setCookie('__Host_auth_token', token, {
           httpOnly: true,
-          secure: opts.cookieSecure,
-          sameSite: opts.cookieSameSite,
-          maxAge: opts.cookieMaxAge,
-          path: '/',
+          secure: cookieSecure,
+          sameSite: cookieSameSite,
+          maxAge: cookieMaxAge,
+          path: cookiePath,
         })
         .send()
     }
@@ -85,11 +83,7 @@ export const registerSiweRoutes = (fastify: FastifyInstance, opts: RegisterSiweR
       } catch (err) {
         console.error(err)
       }
-      void reply
-        .clearCookie('__Host_auth_token', {
-          path: '/',
-        })
-        .send()
+      void reply.clearCookie('__Host_auth_token').send()
     }
   )
 

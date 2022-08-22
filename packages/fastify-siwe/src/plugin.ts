@@ -7,12 +7,28 @@ import type {} from '@fastify/cookie' // Has to be there in order to override th
 import { InMemoryStore } from './InMemoryStore'
 import { ethers, utils } from 'ethers'
 import { EIP1271_MAGIC_VALUE, GNOSIS_SAFE_ABI } from './constants'
+import { RegisterSiweRoutesOpts, registerSiweRoutes } from './registerSiweRoutes'
 
 export interface FastifySiweOptions {
   store?: SessionStore
 }
 
-export const signInWithEthereum = ({ store = new InMemoryStore() }: FastifySiweOptions = {}) =>
+const defaultOpts: RegisterSiweRoutesOpts = {
+  cookieSecure: process.env.NODE_ENV !== 'development',
+  cookieSameSite: 'strict',
+  cookieMaxAge: 60 * 60 * 24, // 1 day
+  cookiePath: '/',
+}
+
+export const signInWithEthereum = (
+  { store = new InMemoryStore() }: FastifySiweOptions = {},
+  {
+    cookieSecure = defaultOpts.cookieSecure,
+    cookieSameSite = defaultOpts.cookieSameSite,
+    cookieMaxAge = defaultOpts.cookieMaxAge,
+    cookiePath = defaultOpts.cookiePath,
+  }: RegisterSiweRoutesOpts = defaultOpts
+) =>
   fastifyPlugin(
     async (fastify: FastifyInstance) => {
       fastify.addHook('onReady', async () => {
@@ -20,6 +36,8 @@ export const signInWithEthereum = ({ store = new InMemoryStore() }: FastifySiweO
           throw new Error('@fastify/cookie is not registered. Please register it before using fastify-siwe')
         }
       })
+
+      registerSiweRoutes(fastify, { cookieSecure, cookieSameSite, cookieMaxAge, cookiePath })
 
       fastify.addHook('preHandler', async (request: FastifyRequest, reply: FastifyReply) => {
         request.siwe = new SiweApi(store)
@@ -37,7 +55,8 @@ export const signInWithEthereum = ({ store = new InMemoryStore() }: FastifySiweO
                 return reply
                   .status(403)
                   .clearCookie('__Host_auth_token', {
-                    path: '/',
+                    secure: cookieSecure,
+                    sameSite: cookieSameSite,
                   })
                   .send()
               }
@@ -72,7 +91,8 @@ export const signInWithEthereum = ({ store = new InMemoryStore() }: FastifySiweO
               return reply
                 .status(403)
                 .clearCookie('__Host_auth_token', {
-                  path: '/',
+                  secure: cookieSecure,
+                  sameSite: cookieSameSite,
                 })
                 .send('Invalid SIWE nonce')
             }
@@ -82,7 +102,8 @@ export const signInWithEthereum = ({ store = new InMemoryStore() }: FastifySiweO
             void reply
               .status(401)
               .clearCookie('__Host_auth_token', {
-                path: '/',
+                secure: cookieSecure,
+                sameSite: cookieSameSite,
               })
               .send('Invalid SIWE token')
           }

@@ -31,7 +31,6 @@ describe('Fastify with SIWE API', () => {
 
     void app.register(cookie)
     void app.register(signInWithEthereum({ store }))
-    registerSiweRoutes(app)
   })
 
   after(async () => {
@@ -217,7 +216,6 @@ describe('Fastify with incorrect configuration', () => {
     const app = createFastify()
     const store = new InMemoryStore()
     void app.register(signInWithEthereum({ store }))
-    registerSiweRoutes(app)
 
     void expect(app.listen({ port: 8080 })).to.be.rejectedWith(
       '@fastify/cookie is not registered. Please register it before using fastify-siwe'
