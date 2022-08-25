@@ -1,19 +1,33 @@
 import { generateNonce, SiweMessage } from 'siwe'
-import { SessionStore, StoredSession } from './index'
+import { SessionStore } from './index'
 
 export class SiweApi {
-  constructor(public readonly _store: SessionStore) {}
+  constructor(private readonly _store: SessionStore) {}
 
   public session?: SiweMessage
 
   async generateNonce(): Promise<string> {
     const nonce = generateNonce()
+    await this._store.save({
+      nonce,
+    })
     return nonce
   }
 
-  async setSession(session: StoredSession) {
-    await this._store.save(session)
-    this.session = session.message
+  async setMessage(message: SiweMessage): Promise<void> {
+    const currentSession = await this._store.get(message.nonce)
+
+    if (!currentSession) {
+      throw new Error('Session not initialized')
+    }
+    if (currentSession.message) {
+      throw new Error('Session already exists')
+    }
+
+    await this._store.save({
+      nonce: message.nonce,
+      message,
+    })
   }
 
   async destroySession(): Promise<void> {

@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { SiweMessage } from 'siwe'
-import { siweAuthenticated } from './index'
+import { parseAndValidateToken } from './plugin'
 
 export interface RegisterSiweRoutesOpts {
   cookieSecure?: boolean
@@ -9,19 +9,9 @@ export interface RegisterSiweRoutesOpts {
   cookiePath?: string
 }
 
-const DEFAULT_COOKIE_SECURE = process.env.NODE_ENV !== 'development'
-const DEFAULT_COOKIE_SAME_SITE = 'strict'
-const DEFAULT_COOKIE_MAX_AGE = 60 * 60 * 24 // 1 day
-const DEFAULT_COOKIE_PATH = '/'
-
 export const registerSiweRoutes = (
   fastify: FastifyInstance,
-  {
-    cookieSecure = DEFAULT_COOKIE_SECURE,
-    cookieSameSite = DEFAULT_COOKIE_SAME_SITE,
-    cookieMaxAge = DEFAULT_COOKIE_MAX_AGE,
-    cookiePath = DEFAULT_COOKIE_PATH,
-  }: RegisterSiweRoutesOpts
+  { cookieSecure, cookieSameSite, cookieMaxAge, cookiePath }: RegisterSiweRoutesOpts
 ) => {
   fastify.post(
     '/siwe/init',
@@ -47,16 +37,22 @@ export const registerSiweRoutes = (
       reply: FastifyReply
     ) {
       const { signature, message } = req.body
+      if (!signature || !message) {
+        return reply.status(422).send({ message: 'Expected prepareMessage object and signature as body.' })
+      }
+      const token = JSON.stringify({ signature, message })
 
-      await req.siwe.setSession({ nonce: message.nonce, message })
-
-      const authToken = JSON.stringify({
-        message,
-        signature,
-      })
+      if (signature !== '0x') {
+        try {
+          await parseAndValidateToken(token)
+          await req.siwe.setMessage(message)
+        } catch (err: any) {
+          return reply.status(403).send(err.message)
+        }
+      }
 
       void reply
-        .setCookie('__Host_auth_token', authToken, {
+        .setCookie('__Host_auth_token', token, {
           httpOnly: true,
           secure: cookieSecure,
           sameSite: cookieSameSite,
@@ -67,27 +63,32 @@ export const registerSiweRoutes = (
     }
   )
 
-  fastify.get(
-    '/siwe/me',
-    { preHandler: siweAuthenticated },
-    async function handler(this: FastifyInstance, req: FastifyRequest, reply: FastifyReply) {
-      if (!req.siwe.session) {
-        return reply.status(401).send()
-      }
-
-      void reply.code(200).send({
-        loggedIn: true,
-        message: req.siwe.session,
-      })
+  fastify.get('/siwe/me', {}, async function handler(this: FastifyInstance, req: FastifyRequest, reply: FastifyReply) {
+    if (!req.siwe.session) {
+      return reply.status(401).send()
     }
-  )
+
+    void reply.code(200).send({
+      loggedIn: true,
+      message: req.siwe.session,
+    })
+  })
 
   fastify.get(
     '/siwe/signout',
     {},
     async function handler(this: FastifyInstance, req: FastifyRequest, reply: FastifyReply) {
-      await req.siwe.destroySession()
-      void reply.clearCookie('__Host_auth_token').send()
+      try {
+        await req.siwe.destroySession()
+      } catch (err) {
+        console.error(err)
+      }
+      void reply
+        .clearCookie('__Host_auth_token', {
+          secure: cookieSecure,
+          sameSite: cookieSameSite,
+        })
+        .send()
     }
   )
 

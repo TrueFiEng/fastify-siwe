@@ -1,7 +1,7 @@
 import { SessionStore, StoredSession } from './types'
 
 export class InMemoryStore implements SessionStore {
-  public sessions: Record<string, StoredSession>
+  private sessions: Record<string, StoredSession>
 
   constructor() {
     this.sessions = {}

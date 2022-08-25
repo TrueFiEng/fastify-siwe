@@ -1,15 +1,34 @@
-import type { FastifyError, FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { SiweMessage } from 'siwe'
 import { SiweApi } from './SiweApi'
 import { SessionStore } from './types'
 import fastifyPlugin from 'fastify-plugin'
 import type {} from '@fastify/cookie' // Has to be there in order to override the Fastify types with cookies.
+import { InMemoryStore } from './InMemoryStore'
+import { ethers, utils } from 'ethers'
+import { EIP1271_MAGIC_VALUE, GNOSIS_SAFE_ABI } from './constants'
+import { RegisterSiweRoutesOpts, registerSiweRoutes } from './registerSiweRoutes'
 
 export interface FastifySiweOptions {
-  store: SessionStore
+  store?: SessionStore
 }
 
-export const siwePlugin = ({ store }: FastifySiweOptions) =>
+const defaultOpts: RegisterSiweRoutesOpts = {
+  cookieSecure: process.env.NODE_ENV !== 'development',
+  cookieSameSite: 'strict',
+  cookieMaxAge: 60 * 60 * 24, // 1 day
+  cookiePath: '/',
+}
+
+export const signInWithEthereum = (
+  { store = new InMemoryStore() }: FastifySiweOptions = {},
+  {
+    cookieSecure = defaultOpts.cookieSecure,
+    cookieSameSite = defaultOpts.cookieSameSite,
+    cookieMaxAge = defaultOpts.cookieMaxAge,
+    cookiePath = defaultOpts.cookiePath,
+  }: RegisterSiweRoutesOpts = defaultOpts
+) =>
   fastifyPlugin(
     async (fastify: FastifyInstance) => {
       fastify.addHook('onReady', async () => {
@@ -18,16 +37,75 @@ export const siwePlugin = ({ store }: FastifySiweOptions) =>
         }
       })
 
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      registerSiweRoutes(fastify, { cookieSecure, cookieSameSite, cookieMaxAge, cookiePath })
+
       fastify.addHook('preHandler', async (request: FastifyRequest, reply: FastifyReply) => {
         request.siwe = new SiweApi(store)
         const token = request.cookies['__Host_auth_token']
         if (token) {
           try {
-            const { message } = JSON.parse(token)
-            request.siwe.session = message
+            const { message, signature } = JSON.parse(token)
+
+            if (signature === '0x') {
+              const siweMessage = new SiweMessage(message)
+
+              const currentSession = await store.get(siweMessage.nonce)
+
+              if (!currentSession) {
+                return reply
+                  .status(403)
+                  .clearCookie('__Host_auth_token', {
+                    secure: cookieSecure,
+                    sameSite: cookieSameSite,
+                  })
+                  .send()
+              }
+
+              const path = request?.routerPath
+              if (path === '/siwe/signout') {
+                request.siwe.session = siweMessage
+                return
+              }
+
+              const provider = ethers.getDefaultProvider(message.chainId)
+              const contract = new ethers.Contract(message.address, new utils.Interface(GNOSIS_SAFE_ABI), provider)
+
+              const msgHash = utils.hashMessage(siweMessage.prepareMessage())
+              let value: string | undefined
+              try {
+                value = await contract.isValidSignature(msgHash, '0x')
+              } catch (err) {
+                console.error(err)
+              }
+              if (value !== EIP1271_MAGIC_VALUE) {
+                return reply.status(403).send()
+              }
+              request.siwe.session = siweMessage
+              return
+            }
+
+            const siweMessage = await parseAndValidateToken(token)
+
+            const currentSession = await store.get(siweMessage.nonce)
+            if (!currentSession?.message || currentSession.message.address !== siweMessage.address) {
+              return reply
+                .status(403)
+                .clearCookie('__Host_auth_token', {
+                  secure: cookieSecure,
+                  sameSite: cookieSameSite,
+                })
+                .send('Invalid SIWE nonce')
+            }
+
+            request.siwe.session = siweMessage
           } catch (err) {
-            // Ignore error
+            void reply
+              .status(401)
+              .clearCookie('__Host_auth_token', {
+                secure: cookieSecure,
+                sameSite: cookieSameSite,
+              })
+              .send('Invalid SIWE token')
           }
         }
       })
@@ -35,38 +113,15 @@ export const siwePlugin = ({ store }: FastifySiweOptions) =>
     { name: 'SIWE' }
   )
 
-export const siweAuthenticated = async (
-  request: FastifyRequest,
-  reply: FastifyReply,
-  done: (err?: FastifyError) => void
-) => {
-  const token = request.cookies['__Host_auth_token']
-  if (!token) {
-    return reply.code(401).send('Unauthorized')
-  }
-
-  try {
-    const siweMessage = await parseAndValidateToken(token)
-
-    const currentSession = await request.siwe._store.get(siweMessage.nonce)
-    if (!currentSession || siweMessage.nonce !== currentSession.nonce) {
-      return reply.status(403).send('Invalid nonce')
-    }
-    if (siweMessage.address !== currentSession.message.address) {
-      return reply.status(403).send('Invalid address')
-    }
-    done()
-  } catch (err) {
-    void reply.status(401).send('Invalid token')
-  }
-}
-
-async function parseAndValidateToken(token: string): Promise<SiweMessage> {
+export async function parseAndValidateToken(token: string): Promise<SiweMessage> {
   const { message, signature } = JSON.parse(token)
 
-  const siweMessage = new SiweMessage(message)
-
-  await siweMessage.verify({ signature })
+  try {
+    const siweMessage = new SiweMessage(message)
+    await siweMessage.verify({ signature })
+  } catch (err) {
+    throw new Error('Invalid SIWE token')
+  }
 
   return message
 }
