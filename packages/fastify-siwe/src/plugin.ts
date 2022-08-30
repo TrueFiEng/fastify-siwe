@@ -16,7 +16,7 @@ export interface FastifySiweOptions {
 const defaultOpts: RegisterSiweRoutesOpts = {
   cookieSecure: process.env.NODE_ENV !== 'development',
   cookieSameSite: 'strict',
-  cookieMaxAge: 60 * 60 * 24, // 1 day
+  cookieMaxAge: undefined,
   cookiePath: '/',
 }
 
