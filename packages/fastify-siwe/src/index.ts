@@ -1,5 +1,5 @@
 export * from './plugin'
-export * from './types'
 export * from './InMemoryStore'
+export type { StoredSession, SessionStore } from './types'
 export type { RegisterSiweRoutesOpts } from './registerSiweRoutes'
 export type { SiweApi } from './SiweApi'
