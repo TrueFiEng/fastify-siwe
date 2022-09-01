@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { SiweMessage } from 'siwe'
-import { Token, TokenSet } from './types'
+import { Token } from './types'
 import { validateToken } from './plugin'
 
 export interface RegisterSiweRoutesOpts {
@@ -37,19 +37,11 @@ export const registerSiweRoutes = (
       }>,
       reply: FastifyReply
     ) {
-      let tokenSet: TokenSet = {}
-      try {
-        tokenSet = JSON.parse(req.cookies['__Host_token_set'] ?? '{}') as TokenSet
-      } catch (err) {
-        console.error(err)
-      }
-
       const { signature, message } = req.body
       if (!signature || !message) {
         return reply.status(422).send({ message: 'Expected prepareMessage object and signature as body.' })
       }
-      const chainId = message.chainId
-      const address = message.address
+      const { chainId, address } = message
       const token = { signature, message } as Token
 
       if (signature !== '0x') {
@@ -61,10 +53,8 @@ export const registerSiweRoutes = (
         }
       }
 
-      const newTokenSet = { ...tokenSet, [chainId]: { ...tokenSet[chainId], [address]: token } }
-
       void reply
-        .setCookie('__Host_token_set', JSON.stringify(newTokenSet), {
+        .setCookie(`__Host_authToken${address}${chainId}`, JSON.stringify(token), {
           httpOnly: true,
           secure: cookieSecure,
           sameSite: cookieSameSite,
@@ -106,21 +96,16 @@ export const registerSiweRoutes = (
         return reply.status(422).send({ message: 'Expected chainId and address as query parameters.' })
       }
 
-      let tokenSet: TokenSet = {}
       try {
-        tokenSet = JSON.parse(req.cookies['__Host_token_set'] ?? '{}')
         await req.siwe.destroySession()
       } catch (err) {
         console.error(err)
       }
 
-      delete tokenSet[chainId][address]
       void reply
-        .setCookie('__Host_token_set', JSON.stringify(tokenSet), {
-          httpOnly: true,
+        .clearCookie(`__Host_authToken${address}${chainId}`, {
           secure: cookieSecure,
           sameSite: cookieSameSite,
-          maxAge: cookieMaxAge,
           path: cookiePath,
         })
         .send()

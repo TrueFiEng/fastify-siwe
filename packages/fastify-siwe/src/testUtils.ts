@@ -3,6 +3,11 @@ import { Wallet } from 'ethers'
 import { FastifyInstance, LightMyRequestResponse } from 'fastify'
 import { SiweMessage } from 'siwe'
 
+export type UserInfo = {
+  chainId: number
+  address: string
+}
+
 export async function getNonce(app: FastifyInstance) {
   return app.inject({ method: 'POST', url: '/siwe/init', validate: true })
 }
@@ -14,42 +19,50 @@ export async function signIn(
   return app.inject({ method: 'POST', url: '/siwe/signin', payload: { signature, message }, validate: true })
 }
 
-export async function signOut(app: FastifyInstance, token: string) {
+export async function signOut(app: FastifyInstance, token: string, { chainId, address }: UserInfo) {
   return app.inject({
-    method: 'GET',
+    method: 'POST',
     url: '/siwe/signout',
     validate: true,
     cookies: {
-      __Host_auth_token: token,
+      [`__Host_authToken${address}${chainId}`]: token,
+    },
+    query: {
+      chainId: String(chainId),
+      address,
     },
   })
 }
 
-export async function getAuth(app: FastifyInstance, token: string) {
+export async function getAuth(app: FastifyInstance, token: string, { chainId, address }: UserInfo) {
   return app.inject({
     method: 'GET',
     url: '/siwe/me',
     validate: true,
     cookies: {
-      __Host_auth_token: token,
+      [`__Host_authToken${address}${chainId}`]: token,
+    },
+    query: {
+      chainId: String(chainId),
+      address,
     },
   })
 }
 
-export function createAuthMessage(wallet: Wallet) {
+export async function createAuthMessage(wallet: Wallet) {
   return {
     domain: 'localhost:3001',
     address: wallet.address,
     statement: 'Sign in with Ethereum to the app.',
     uri: 'http://localhost:3001',
     version: '1',
-    chainId: 1,
+    chainId: await wallet.getChainId(),
   }
 }
 
 export async function authenticate(wallet: Wallet, app: FastifyInstance) {
   const { nonce } = JSON.parse((await getNonce(app)).payload)
-  const defaultMessage = createAuthMessage(wallet)
+  const defaultMessage = await createAuthMessage(wallet)
 
   const message = new SiweMessage({
     ...defaultMessage,
@@ -60,6 +73,6 @@ export async function authenticate(wallet: Wallet, app: FastifyInstance) {
   await signIn(app, { signature, message })
 
   const token = JSON.stringify({ signature, message: message })
-  await getAuth(app, token)
+  await getAuth(app, token, { chainId: await wallet.getChainId(), address: wallet.address })
   return token
 }

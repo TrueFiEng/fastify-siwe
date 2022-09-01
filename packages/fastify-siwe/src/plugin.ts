@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { SiweMessage } from 'siwe'
 import { SiweApi } from './SiweApi'
-import { SessionStore, Token, TokenSet } from './types'
+import { SessionStore, Token } from './types'
 import fastifyPlugin from 'fastify-plugin'
 import type {} from '@fastify/cookie' // Has to be there in order to override the Fastify types with cookies.
 import { InMemoryStore } from './InMemoryStore'
@@ -53,54 +53,49 @@ export const signInWithEthereum = (
           request.siwe = new SiweApi(store)
 
           const { chainId, address } = request.query
-          const tokenSetCookie = request.cookies['__Host_token_set']
-          if (!chainId || !address || !tokenSetCookie) return
+          const tokenCookie = request.cookies[`__Host_authToken${address}${chainId}`]
+          if (!chainId || !address || !tokenCookie) return
 
           const path = request?.routerPath
-
           if (path === '/siwe/init' || path === '/siwe/signin') return
 
-          let tokenSet: TokenSet | undefined = undefined
           let token: Token | undefined = undefined
           try {
-            tokenSet = JSON.parse(tokenSetCookie) as TokenSet
-            token = tokenSet[chainId]?.[address]
-            console.log('========================================================')
-            console.log({ tokenSet, token })
-            console.log('========================================================')
-            if (!token) return
+            token = JSON.parse(tokenCookie) as Token
             const { signature, message } = token
 
-            if (signature === '0x') {
-              await validateContract(message)
+            const userIsContract = signature === '0x'
+            if (userIsContract) {
+              return handleContract(message)
             }
 
             const siweMessage = await validateToken(token)
 
-            console.log({ siweMessage })
-
             const currentSession = await store.get(siweMessage.nonce)
             if (!currentSession?.message || currentSession.message.address !== siweMessage.address) {
-              delete tokenSet[chainId][address]
               return reply
                 .status(403)
-                .setCookie('__Host_token_set', JSON.stringify(tokenSet), {
-                  httpOnly: true,
+                .clearCookie(`__Host_authToken${address}${chainId}`, {
                   secure: cookieSecure,
                   sameSite: cookieSameSite,
-                  maxAge: cookieMaxAge,
                   path: cookiePath,
                 })
                 .send('Invalid SIWE nonce')
             }
-
             request.siwe.session = siweMessage
           } catch (err) {
-            if (!tokenSet || !token) return
-            void reply.status(401).send('Invalid SIWE token')
+            if (!token) return
+            void reply
+              .status(401)
+              .clearCookie(`__Host_authToken${address}${chainId}`, {
+                secure: cookieSecure,
+                sameSite: cookieSameSite,
+                path: cookiePath,
+              })
+              .send('Invalid SIWE token')
           }
 
-          async function validateContract(message: SiweMessage) {
+          async function handleContract(message: SiweMessage): Promise<void> {
             const siweMessage = new SiweMessage(message)
 
             const currentSession = await store.get(siweMessage.nonce)
@@ -108,9 +103,10 @@ export const signInWithEthereum = (
             if (!currentSession) {
               return reply
                 .status(403)
-                .clearCookie('__Host_token_set', {
+                .clearCookie(`__Host_authToken${address}${chainId}`, {
                   secure: cookieSecure,
                   sameSite: cookieSameSite,
+                  path: cookiePath,
                 })
                 .send()
             }
@@ -120,8 +116,8 @@ export const signInWithEthereum = (
               return
             }
 
-            const provider = ethers.getDefaultProvider(message.chainId)
-            const contract = new ethers.Contract(message.address, new utils.Interface(GNOSIS_SAFE_ABI), provider)
+            const provider = ethers.getDefaultProvider(siweMessage.chainId)
+            const contract = new ethers.Contract(siweMessage.address, new utils.Interface(GNOSIS_SAFE_ABI), provider)
 
             const msgHash = utils.hashMessage(siweMessage.prepareMessage())
             let value: string | undefined
@@ -144,12 +140,11 @@ export const signInWithEthereum = (
 
 export async function validateToken(token: Token): Promise<SiweMessage> {
   const { signature, message } = token
+  const siweMessage = new SiweMessage(message)
   try {
-    const siweMessage = new SiweMessage(message)
     await siweMessage.verify({ signature })
   } catch (err) {
-    throw new Error('Invalid SIWE tokens')
+    throw new Error('Invalid SIWE token')
   }
-
-  return message
+  return siweMessage
 }

@@ -15,7 +15,6 @@ export interface SessionStore {
 }
 
 export type Token = { signature: string; message: SiweMessage }
-export type TokenSet = Record<number, Record<string, Token>>
 
 declare module 'fastify' {
   interface FastifyRequest {
