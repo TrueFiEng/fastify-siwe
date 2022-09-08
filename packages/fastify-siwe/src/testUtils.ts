@@ -27,9 +27,8 @@ export async function signOut(app: FastifyInstance, token: string, { chainId, ad
     cookies: {
       [`__Host_authToken${address}${chainId}`]: token,
     },
-    query: {
-      chainId: String(chainId),
-      address,
+    headers: {
+      Authorization: `${address}:${chainId}`,
     },
   })
 }
@@ -42,9 +41,8 @@ export async function getAuth(app: FastifyInstance, token: string, { chainId, ad
     cookies: {
       [`__Host_authToken${address}${chainId}`]: token,
     },
-    query: {
-      chainId: String(chainId),
-      address,
+    headers: {
+      Authorization: `${address}:${chainId}`,
     },
   })
 }

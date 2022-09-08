@@ -39,101 +39,90 @@ export const signInWithEthereum = (
 
       registerSiweRoutes(fastify, { cookieSecure, cookieSameSite, cookieMaxAge, cookiePath })
 
-      fastify.addHook(
-        'preHandler',
-        async (
-          request: FastifyRequest<{
-            Querystring: {
-              chainId?: number
-              address?: string
-            }
-          }>,
-          reply: FastifyReply
-        ) => {
-          request.siwe = new SiweApi(store)
+      fastify.addHook('preHandler', async (request: FastifyRequest, reply: FastifyReply) => {
+        request.siwe = new SiweApi(store)
+        const authorizationHeader = request.headers.authorization
+        const [address, chainId] = authorizationHeader?.split(':') ?? []
+        const tokenCookie = request.cookies[`__Host_authToken${address}${chainId}`]
+        if (!chainId || !address || !tokenCookie) return
 
-          const { chainId, address } = request.query
-          const tokenCookie = request.cookies[`__Host_authToken${address}${chainId}`]
-          if (!chainId || !address || !tokenCookie) return
+        const path = request?.routerPath
+        if (path === '/siwe/init' || path === '/siwe/signin') return
 
-          const path = request?.routerPath
-          if (path === '/siwe/init' || path === '/siwe/signin') return
+        let token: Token | undefined = undefined
+        try {
+          token = JSON.parse(tokenCookie) as Token
+          const { signature, message } = token
 
-          let token: Token | undefined = undefined
-          try {
-            token = JSON.parse(tokenCookie) as Token
-            const { signature, message } = token
+          const userIsContract = signature === '0x'
+          if (userIsContract) {
+            return handleContract(message)
+          }
 
-            const userIsContract = signature === '0x'
-            if (userIsContract) {
-              return handleContract(message)
-            }
+          const siweMessage = await validateToken(token)
 
-            const siweMessage = await validateToken(token)
-
-            const currentSession = await store.get(siweMessage.nonce)
-            if (!currentSession?.message || currentSession.message.address !== siweMessage.address) {
-              return reply
-                .status(403)
-                .clearCookie(`__Host_authToken${address}${chainId}`, {
-                  secure: cookieSecure,
-                  sameSite: cookieSameSite,
-                  path: cookiePath,
-                })
-                .send('Invalid SIWE nonce')
-            }
-            request.siwe.session = siweMessage
-          } catch (err) {
-            if (!token) return
-            void reply
-              .status(401)
+          const currentSession = await store.get(siweMessage.nonce)
+          if (!currentSession?.message || currentSession.message.address !== siweMessage.address) {
+            return reply
+              .status(403)
               .clearCookie(`__Host_authToken${address}${chainId}`, {
                 secure: cookieSecure,
                 sameSite: cookieSameSite,
                 path: cookiePath,
               })
-              .send('Invalid SIWE token')
+              .send('Invalid SIWE nonce')
+          }
+          request.siwe.session = siweMessage
+        } catch (err) {
+          if (!token) return
+          void reply
+            .status(401)
+            .clearCookie(`__Host_authToken${address}${chainId}`, {
+              secure: cookieSecure,
+              sameSite: cookieSameSite,
+              path: cookiePath,
+            })
+            .send('Invalid SIWE token')
+        }
+
+        async function handleContract(message: SiweMessage): Promise<void> {
+          const siweMessage = new SiweMessage(message)
+
+          const currentSession = await store.get(siweMessage.nonce)
+
+          if (!currentSession) {
+            return reply
+              .status(403)
+              .clearCookie(`__Host_authToken${address}${chainId}`, {
+                secure: cookieSecure,
+                sameSite: cookieSameSite,
+                path: cookiePath,
+              })
+              .send()
           }
 
-          async function handleContract(message: SiweMessage): Promise<void> {
-            const siweMessage = new SiweMessage(message)
-
-            const currentSession = await store.get(siweMessage.nonce)
-
-            if (!currentSession) {
-              return reply
-                .status(403)
-                .clearCookie(`__Host_authToken${address}${chainId}`, {
-                  secure: cookieSecure,
-                  sameSite: cookieSameSite,
-                  path: cookiePath,
-                })
-                .send()
-            }
-
-            if (path === '/siwe/signout') {
-              request.siwe.session = siweMessage
-              return
-            }
-
-            const provider = ethers.getDefaultProvider(siweMessage.chainId)
-            const contract = new ethers.Contract(siweMessage.address, new utils.Interface(GNOSIS_SAFE_ABI), provider)
-
-            const msgHash = utils.hashMessage(siweMessage.prepareMessage())
-            let value: string | undefined
-            try {
-              value = await contract.isValidSignature(msgHash, '0x')
-            } catch (err) {
-              console.error(err)
-            }
-            if (value !== EIP1271_MAGIC_VALUE) {
-              return reply.status(403).send()
-            }
+          if (path === '/siwe/signout') {
             request.siwe.session = siweMessage
             return
           }
+
+          const provider = ethers.getDefaultProvider(siweMessage.chainId)
+          const contract = new ethers.Contract(siweMessage.address, new utils.Interface(GNOSIS_SAFE_ABI), provider)
+
+          const msgHash = utils.hashMessage(siweMessage.prepareMessage())
+          let value: string | undefined
+          try {
+            value = await contract.isValidSignature(msgHash, '0x')
+          } catch (err) {
+            console.error(err)
+          }
+          if (value !== EIP1271_MAGIC_VALUE) {
+            return reply.status(403).send()
+          }
+          request.siwe.session = siweMessage
+          return
         }
-      )
+      })
     },
     { name: 'SIWE' }
   )

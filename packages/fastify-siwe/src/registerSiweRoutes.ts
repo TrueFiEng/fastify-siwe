@@ -41,7 +41,7 @@ export const registerSiweRoutes = (
       if (!signature || !message) {
         return reply.status(422).send({ message: 'Expected prepareMessage object and signature as body.' })
       }
-      const { chainId, address } = message
+      const { address, chainId } = message
       const token = { signature, message } as Token
 
       if (signature !== '0x') {
@@ -81,17 +81,9 @@ export const registerSiweRoutes = (
   fastify.post(
     '/siwe/signout',
     {},
-    async function handler(
-      this: FastifyInstance,
-      req: FastifyRequest<{
-        Querystring: {
-          chainId?: number
-          address?: string
-        }
-      }>,
-      reply: FastifyReply
-    ) {
-      const { chainId, address } = req.query
+    async function handler(this: FastifyInstance, req: FastifyRequest, reply: FastifyReply) {
+      const authorizationHeader = req.headers.authorization
+      const [address, chainId] = authorizationHeader?.split(':') ?? []
       if (!chainId || !address) {
         return reply.status(422).send({ message: 'Expected chainId and address as query parameters.' })
       }
