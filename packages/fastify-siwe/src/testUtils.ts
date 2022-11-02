@@ -28,7 +28,7 @@ export async function signOut(app: FastifyInstance, token: string, { chainId, ad
       [`__Host_authToken${address}${chainId}`]: token,
     },
     headers: {
-      Authorization: `${address}:${chainId}`,
+      multichain: `${address}:${chainId}`,
     },
   })
 }
@@ -42,7 +42,7 @@ export async function getAuth(app: FastifyInstance, token: string, { chainId, ad
       [`__Host_authToken${address}${chainId}`]: token,
     },
     headers: {
-      Authorization: `${address}:${chainId}`,
+      multichain: `${address}:${chainId}`,
     },
   })
 }

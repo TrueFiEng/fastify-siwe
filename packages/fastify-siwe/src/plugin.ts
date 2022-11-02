@@ -41,8 +41,8 @@ export const signInWithEthereum = (
 
       fastify.addHook('preHandler', async (request: FastifyRequest, reply: FastifyReply) => {
         request.siwe = new SiweApi(store)
-        const authorizationHeader = request.headers.authorization
-        const [address, chainId] = authorizationHeader?.split(':') ?? []
+        const multichainHeader = request.headers['multichain'] as string | undefined
+        const [address, chainId] = multichainHeader?.split(':') ?? []
         const tokenCookie = request.cookies[`__Host_authToken${address}${chainId}`]
         if (!chainId || !address || !tokenCookie) return
 

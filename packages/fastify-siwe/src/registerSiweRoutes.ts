@@ -82,8 +82,8 @@ export const registerSiweRoutes = (
     '/siwe/signout',
     {},
     async function handler(this: FastifyInstance, req: FastifyRequest, reply: FastifyReply) {
-      const authorizationHeader = req.headers.authorization
-      const [address, chainId] = authorizationHeader?.split(':') ?? []
+      const multichainHeader = req.headers['multichain'] as string | undefined
+      const [address, chainId] = multichainHeader?.split(':') ?? []
       if (!chainId || !address) {
         return reply.status(422).send({ message: 'Expected chainId and address as query parameters.' })
       }
