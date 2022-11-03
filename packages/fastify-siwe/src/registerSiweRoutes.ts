@@ -42,7 +42,7 @@ export const registerSiweRoutes = (
         return reply.status(422).send({ message: 'Expected prepareMessage object and signature as body.' })
       }
       const { address, chainId } = message
-      const token = { signature, message } as Token
+      const token: Token = { signature, message }
 
       if (signature !== '0x') {
         try {
