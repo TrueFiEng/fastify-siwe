@@ -56,7 +56,7 @@ export const signInWithEthereum = (
 
           const userIsContract = signature === '0x'
           if (userIsContract) {
-            return handleContract(message)
+            return handleMultisigWallet(message)
           }
 
           const siweMessage = await validateToken(token)
@@ -85,7 +85,7 @@ export const signInWithEthereum = (
             .send('Invalid SIWE token')
         }
 
-        async function handleContract(message: SiweMessage): Promise<void> {
+        async function handleMultisigWallet(message: SiweMessage): Promise<void> {
           const siweMessage = new SiweMessage(message)
 
           const currentSession = await store.get(siweMessage.nonce)
