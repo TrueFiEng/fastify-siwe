@@ -189,9 +189,7 @@ describe('Fastify with SIWE API', () => {
       method: 'GET',
       url: '/siwe/me',
       validate: true,
-      cookies: {
-        __Host_token_set: '',
-      },
+      cookies: {},
     })
     expect(response.statusCode).to.equal(401)
   })
