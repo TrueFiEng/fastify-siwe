@@ -9,7 +9,7 @@ import cookie from '@fastify/cookie'
 import { Wallet } from 'ethers'
 import * as chaiAsPromised from 'chai-as-promised'
 import { SessionStore } from './types'
-import { getNonce, createAuthMessage, signIn, getAuth, authenticate, signOut } from './testUtils'
+import { getNonce, createAuthMessage, signIn, getAuth, authenticate, signOut, UserInfo } from './testUtils'
 
 chai.use(chaiAsPromised)
 
@@ -24,7 +24,7 @@ describe('Fastify with SIWE API', () => {
     provider = new MockProvider({ ganacheOptions: { chain: { chainId: 1 } } as any })
     signer = provider.getWallets()[0]
     app = createFastify()
-    defaultMessage = createAuthMessage(signer)
+    defaultMessage = await createAuthMessage(signer)
 
     store = new InMemoryStore()
 
@@ -61,7 +61,12 @@ describe('Fastify with SIWE API', () => {
 
     const authToken = JSON.stringify({ signature, message })
 
-    const authResponse: { loggedIn: boolean; message: SiweMessage } = (await getAuth(app, authToken)).json()
+    const userInfo: UserInfo = {
+      chainId: await signer.getChainId(),
+      address: await signer.getAddress(),
+    }
+
+    const authResponse: { loggedIn: boolean; message: SiweMessage } = (await getAuth(app, authToken, userInfo)).json()
 
     expect(authResponse.loggedIn).to.equal(true)
     expect(authResponse.message.nonce).to.equal(nonce)
@@ -76,7 +81,12 @@ describe('Fastify with SIWE API', () => {
 
     const authToken = JSON.stringify({ signature, message })
 
-    const authResponse = await getAuth(app, authToken)
+    const userInfo: UserInfo = {
+      chainId: await signer.getChainId(),
+      address: await signer.getAddress(),
+    }
+
+    const authResponse = await getAuth(app, authToken, userInfo)
 
     expect(authResponse.statusCode).to.equal(403)
     expect(authResponse.payload).to.equal('Invalid SIWE nonce')
@@ -88,14 +98,20 @@ describe('Fastify with SIWE API', () => {
     const signature = await signer.signMessage(message.prepareMessage())
     await signIn(app, { signature, message })
     const authToken = JSON.stringify({ signature, message })
-    const authResponse: { loggedIn: boolean; message: SiweMessage } = (await getAuth(app, authToken)).json()
+
+    const userInfo: UserInfo = {
+      chainId: await signer.getChainId(),
+      address: await signer.getAddress(),
+    }
+
+    const authResponse: { loggedIn: boolean; message: SiweMessage } = (await getAuth(app, authToken, userInfo)).json()
 
     expect(authResponse.loggedIn).to.equal(true)
     expect(authResponse.message.nonce).to.equal(nonce)
     expect(authResponse.message.address).to.equal(await signer.getAddress())
 
     const secondSigner = provider.getWallets()[1]
-    const secondMessage = createAuthMessage(secondSigner)
+    const secondMessage = await createAuthMessage(secondSigner)
     const messageWithReusedNonce = new SiweMessage({ ...secondMessage, nonce })
     const signatureWithReusedNonce = await secondSigner.signMessage(messageWithReusedNonce.prepareMessage())
     const signInResponse = await signIn(app, {
@@ -159,7 +175,11 @@ describe('Fastify with SIWE API', () => {
     const { signature, message } = JSON.parse(token)
     const messageWithInvalidNonce = new SiweMessage({ ...message, nonce: '0'.repeat(17) })
     const badToken = JSON.stringify({ signature, message: messageWithInvalidNonce })
-    const response = await getAuth(app, badToken)
+    const userInfo: UserInfo = {
+      chainId: await signer.getChainId(),
+      address: await signer.getAddress(),
+    }
+    const response = await getAuth(app, badToken, userInfo)
     expect(response.statusCode).to.equal(401)
     expect(response.payload).to.equal('Invalid SIWE token')
   })
@@ -169,9 +189,7 @@ describe('Fastify with SIWE API', () => {
       method: 'GET',
       url: '/siwe/me',
       validate: true,
-      cookies: {
-        __Host_auth_token: '',
-      },
+      cookies: {},
     })
     expect(response.statusCode).to.equal(401)
   })
@@ -181,11 +199,15 @@ describe('Fastify with SIWE API', () => {
     const { message } = JSON.parse(token)
 
     const secondSigner = provider.getWallets()[1]
-    const secondMessage = createAuthMessage(secondSigner)
+    const secondMessage = await createAuthMessage(secondSigner)
     const badMessage = new SiweMessage({ ...secondMessage, nonce: message.nonce })
     const badSignature = await secondSigner.signMessage(badMessage.prepareMessage())
     const badToken = JSON.stringify({ signature: badSignature, message: badMessage })
-    const response = await getAuth(app, badToken)
+    const userInfo: UserInfo = {
+      chainId: await signer.getChainId(),
+      address: await signer.getAddress(),
+    }
+    const response = await getAuth(app, badToken, userInfo)
     expect(response.statusCode).to.equal(403)
     expect(response.payload).to.equal('Invalid SIWE nonce')
   })
@@ -194,7 +216,11 @@ describe('Fastify with SIWE API', () => {
     const message = new SiweMessage({ ...defaultMessage, nonce: '0'.repeat(17) })
     const signature = await signer.signMessage(message.prepareMessage())
     const badToken = JSON.stringify({ signature, message })
-    const response = await getAuth(app, badToken)
+    const userInfo: UserInfo = {
+      chainId: await signer.getChainId(),
+      address: await signer.getAddress(),
+    }
+    const response = await getAuth(app, badToken, userInfo)
     expect(response.statusCode).to.equal(403)
     expect(response.payload).to.equal('Invalid SIWE nonce')
   })
@@ -203,7 +229,11 @@ describe('Fastify with SIWE API', () => {
     const token = await authenticate(signer, app)
     const { message } = JSON.parse(token)
     expect(await store.get(message.nonce)).to.exist
-    const response = await signOut(app, token)
+    const userInfo: UserInfo = {
+      chainId: await signer.getChainId(),
+      address: await signer.getAddress(),
+    }
+    const response = await signOut(app, token, userInfo)
     expect(response.statusCode).to.equal(200)
     expect(response.headers['set-cookie']).to.exist
     expect(await store.get(message.nonce)).to.not.exist

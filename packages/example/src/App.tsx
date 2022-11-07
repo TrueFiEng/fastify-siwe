@@ -23,23 +23,37 @@ async function siweSignIn({ signature, message }: { signature: string; message: 
   })
 }
 
-async function checkAuthStatus(): Promise<{
+async function checkAuthStatus({ chainId, address }: { chainId: number; address: string }): Promise<{
   message?: SiweMessage
 }> {
-  const req = await fetch('http://localhost:3001/siwe/me', {
+  const url = new URL('http://localhost:3001/siwe/me')
+  url.searchParams.append('chainId', chainId.toString())
+  url.searchParams.append('address', address)
+  const req = await fetch(url.toString(), {
     credentials: 'include',
   })
   return await req.json()
 }
 
+async function signOutRequest({ chainId, address }: { chainId: number; address: string }) {
+  const url = new URL('http://localhost:3001/siwe/signout')
+  url.searchParams.append('chainId', chainId.toString())
+  url.searchParams.append('address', address)
+  await fetch(url.toString(), {
+    method: 'POST',
+    credentials: 'include',
+  })
+}
+
 function App() {
+  const provider = new providers.Web3Provider((window as any).ethereum)
+  const signer = provider.getSigner()
+
   const [message, setMessage] = useState<SiweMessage | undefined>()
 
   async function signIn() {
-    const provider = new providers.Web3Provider((window as any).ethereum)
     // Prompt user for account connections
     await provider.send('eth_requestAccounts', [])
-    const signer = provider.getSigner()
 
     const domain = window.location.host
     const origin = window.location.origin
@@ -51,7 +65,7 @@ function App() {
       statement,
       uri: origin,
       version: '1',
-      chainId: 1,
+      chainId: await signer.getChainId(),
       nonce: await getNonce(),
     })
 
@@ -59,18 +73,24 @@ function App() {
 
     await siweSignIn({ signature, message })
 
-    void checkAuthStatus().then((res) => setMessage(res?.message))
+    const [chainId, address] = await Promise.all([signer.getChainId(), signer.getAddress()])
+
+    void checkAuthStatus({ chainId, address }).then((res) => setMessage(res?.message))
   }
 
   async function signOut() {
-    await fetch('http://localhost:3001/siwe/signout', {
-      credentials: 'include',
-    })
+    const [chainId, address] = await Promise.all([signer.getChainId(), signer.getAddress()])
+    await signOutRequest({ chainId, address })
     setMessage(undefined)
   }
 
   useEffect(() => {
-    void checkAuthStatus().then((res) => setMessage(res?.message))
+    const checkAuth = async () => {
+      const [chainId, address] = await Promise.all([signer.getChainId(), signer.getAddress()])
+      const res = await checkAuthStatus({ chainId, address })
+      setMessage(res.message)
+    }
+    void checkAuth()
   }, [])
 
   return (
@@ -82,6 +102,7 @@ function App() {
       {message ? (
         <>
           <p>Logged in with {message.address}</p>
+          <p>Chain ID: {message.chainId}</p>
           <p>Nonce: {message.nonce}</p>
           <p>IssuedAt: {message.issuedAt}</p>
         </>

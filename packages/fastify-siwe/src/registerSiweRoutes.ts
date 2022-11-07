@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { SiweMessage } from 'siwe'
-import { parseAndValidateToken } from './plugin'
+import { Token } from './types'
+import { validateToken } from './plugin'
 
 export interface RegisterSiweRoutesOpts {
   cookieSecure?: boolean
@@ -40,19 +41,20 @@ export const registerSiweRoutes = (
       if (!signature || !message) {
         return reply.status(422).send({ message: 'Expected prepareMessage object and signature as body.' })
       }
-      const token = JSON.stringify({ signature, message })
+      const { address, chainId } = message
+      const token: Token = { signature, message }
 
       if (signature !== '0x') {
         try {
-          await parseAndValidateToken(token)
+          await validateToken(token)
           await req.siwe.setMessage(message)
         } catch (err: any) {
-          return reply.status(403).send(err.message)
+          return reply.status(403).send(err.message ?? 'Invalid SIWE token')
         }
       }
 
       void reply
-        .setCookie('__Host_auth_token', token, {
+        .setCookie(`__Host_authToken${address}${chainId}`, JSON.stringify(token), {
           httpOnly: true,
           secure: cookieSecure,
           sameSite: cookieSameSite,
@@ -65,7 +67,9 @@ export const registerSiweRoutes = (
 
   fastify.get('/siwe/me', {}, async function handler(this: FastifyInstance, req: FastifyRequest, reply: FastifyReply) {
     if (!req.siwe.session) {
-      return reply.status(401).send()
+      return reply.status(401).send({
+        loggedIn: false,
+      })
     }
 
     void reply.code(200).send({
@@ -74,19 +78,27 @@ export const registerSiweRoutes = (
     })
   })
 
-  fastify.get(
+  fastify.post(
     '/siwe/signout',
     {},
     async function handler(this: FastifyInstance, req: FastifyRequest, reply: FastifyReply) {
+      const multichainHeader = req.headers['multichain'] as string | undefined
+      const [address, chainId] = multichainHeader?.split(':') ?? []
+      if (!chainId || !address) {
+        return reply.status(422).send({ message: 'Expected chainId and address as query parameters.' })
+      }
+
       try {
         await req.siwe.destroySession()
       } catch (err) {
         console.error(err)
       }
+
       void reply
-        .clearCookie('__Host_auth_token', {
+        .clearCookie(`__Host_authToken${address}${chainId}`, {
           secure: cookieSecure,
           sameSite: cookieSameSite,
+          path: cookiePath,
         })
         .send()
     }

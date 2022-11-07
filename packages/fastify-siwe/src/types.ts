@@ -14,6 +14,8 @@ export interface SessionStore {
   remove(nonce: string): Promise<void>
 }
 
+export type Token = { signature: string; message: SiweMessage }
+
 declare module 'fastify' {
   interface FastifyRequest {
     siwe: SiweApi
