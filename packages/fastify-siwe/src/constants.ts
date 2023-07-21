@@ -3,6 +3,5 @@ export const GNOSIS_SAFE_ABI = [
   'function getMessageHash(bytes memory message) public view returns (bytes32)',
   'function signedMessages(bytes32 msgHash) public view returns (uint256)',
   'function isValidSignature(bytes calldata _data, bytes calldata _signature) public view returns (bytes4)',
+  'function checkSignatures(bytes32 dataHash, bytes memory data, bytes memory signatures) public view',
 ]
-
-export const EIP1271_MAGIC_VALUE = '0x20c13b0b'

@@ -6,10 +6,11 @@ import fastifyPlugin from 'fastify-plugin'
 import type {} from '@fastify/cookie' // Has to be there in order to override the Fastify types with cookies.
 import { InMemoryStore } from './InMemoryStore'
 import { ethers, utils } from 'ethers'
-import { EIP1271_MAGIC_VALUE, GNOSIS_SAFE_ABI } from './constants'
+import { GNOSIS_SAFE_ABI } from './constants'
 import { RegisterSiweRoutesOpts, registerSiweRoutes } from './registerSiweRoutes'
 
 export interface FastifySiweOptions {
+  infuraId?: string
   store?: SessionStore
 }
 
@@ -21,7 +22,7 @@ const defaultOpts: RegisterSiweRoutesOpts = {
 }
 
 export const signInWithEthereum = (
-  { store = new InMemoryStore() }: FastifySiweOptions = {},
+  { store = new InMemoryStore(), infuraId }: FastifySiweOptions = {},
   {
     cookieSecure = defaultOpts.cookieSecure,
     cookieSameSite = defaultOpts.cookieSameSite,
@@ -37,7 +38,7 @@ export const signInWithEthereum = (
         }
       })
 
-      registerSiweRoutes(fastify, { cookieSecure, cookieSameSite, cookieMaxAge, cookiePath })
+      registerSiweRoutes(fastify, { cookieSecure, cookieSameSite, cookieMaxAge, cookiePath, infuraId })
 
       fastify.addHook('preHandler', async (request: FastifyRequest, reply: FastifyReply) => {
         request.siwe = new SiweApi(store)
@@ -52,14 +53,7 @@ export const signInWithEthereum = (
         let token: Token | undefined = undefined
         try {
           token = JSON.parse(tokenCookie) as Token
-          const { signature, message } = token
-
-          const userIsContract = signature === '0x'
-          if (userIsContract) {
-            return handleMultisigWallet(message)
-          }
-
-          const siweMessage = await validateToken(token)
+          const siweMessage = await validateToken(token, infuraId)
 
           const currentSession = await store.get(siweMessage.nonce)
           if (!currentSession?.message || currentSession.message.address !== siweMessage.address) {
@@ -84,56 +78,38 @@ export const signInWithEthereum = (
             })
             .send('Invalid SIWE token')
         }
-
-        async function handleMultisigWallet(message: SiweMessage): Promise<void> {
-          const siweMessage = new SiweMessage(message)
-
-          const currentSession = await store.get(siweMessage.nonce)
-
-          if (!currentSession) {
-            return reply
-              .status(403)
-              .clearCookie(`__Host_authToken${address}${chainId}`, {
-                secure: cookieSecure,
-                sameSite: cookieSameSite,
-                path: cookiePath,
-              })
-              .send()
-          }
-
-          if (path === '/siwe/signout') {
-            request.siwe.session = siweMessage
-            return
-          }
-
-          const provider = ethers.getDefaultProvider(siweMessage.chainId)
-          const contract = new ethers.Contract(siweMessage.address, new utils.Interface(GNOSIS_SAFE_ABI), provider)
-
-          const msgHash = utils.hashMessage(siweMessage.prepareMessage())
-          let value: string | undefined
-          try {
-            value = await contract.isValidSignature(msgHash, '0x')
-          } catch (err) {
-            console.error(err)
-          }
-          if (value !== EIP1271_MAGIC_VALUE) {
-            return reply.status(403).send()
-          }
-          request.siwe.session = siweMessage
-          return
-        }
       })
     },
     { name: 'SIWE' }
   )
 
-export async function validateToken(token: Token): Promise<SiweMessage> {
+export async function validateToken(token: Token, infuraId?: string): Promise<SiweMessage> {
   const { signature, message } = token
   const siweMessage = new SiweMessage(message)
+  let valid = false
+
   try {
     await siweMessage.verify({ signature })
-  } catch (err) {
+    valid = true
+  } catch {} // eslint-disable-line no-empty
+
+  try {
+    await verifyGnosisSafeSignature(siweMessage, signature, infuraId)
+    valid = true
+  } catch {} // eslint-disable-line no-empty
+
+  if (!valid) {
     throw new Error('Invalid SIWE token')
   }
   return siweMessage
+}
+
+async function verifyGnosisSafeSignature(message: SiweMessage, signature: string, infuraId?: string) {
+  const provider = infuraId
+    ? new ethers.providers.InfuraProvider(message.chainId, infuraId)
+    : ethers.providers.getDefaultProvider(message.chainId)
+  const contract = new ethers.Contract(message.address, new utils.Interface(GNOSIS_SAFE_ABI), provider)
+  const hashedMessage = utils.hashMessage(message.prepareMessage())
+  const msgHash = await contract.getMessageHash(hashedMessage, { from: message.address })
+  await contract.checkSignatures(msgHash, hashedMessage, signature)
 }
