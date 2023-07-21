@@ -11,6 +11,9 @@
     "type": "git",
     "url": "git@github.com:vanruch/fastify-siwe.git"
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "keywords": [
     "fastify",
     "Sign in with Ethereum",
