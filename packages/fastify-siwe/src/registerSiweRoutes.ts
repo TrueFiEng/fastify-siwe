@@ -8,11 +8,12 @@ export interface RegisterSiweRoutesOpts {
   cookieSameSite?: boolean | 'strict' | 'lax' | 'none'
   cookieMaxAge?: number
   cookiePath?: string
+  infuraId?: string
 }
 
 export const registerSiweRoutes = (
   fastify: FastifyInstance,
-  { cookieSecure, cookieSameSite, cookieMaxAge, cookiePath }: RegisterSiweRoutesOpts
+  { cookieSecure, cookieSameSite, cookieMaxAge, cookiePath, infuraId }: RegisterSiweRoutesOpts
 ) => {
   fastify.post(
     '/siwe/init',
@@ -46,7 +47,7 @@ export const registerSiweRoutes = (
 
       if (signature !== '0x') {
         try {
-          await validateToken(token)
+          await validateToken(token, infuraId)
           await req.siwe.setMessage(message)
         } catch (err: any) {
           return reply.status(403).send(err.message ?? 'Invalid SIWE token')
